@@ -1,0 +1,4 @@
+digraph DCAT_v2_summary{
+ratio = "auto"
+a -> b;
+}

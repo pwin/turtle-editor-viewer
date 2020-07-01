@@ -1,0 +1,174 @@
+<html>
+    <head>
+        <title>Dot Viewer</title>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="css/viz.js.css"/>
+        <!-- script type="text/javascript" src="js/ace/ace.js"></script -->
+        <script src="js/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" src="js/Split.js/split.min.js"></script>
+        <script type="text/javascript" src="js/fabric.js/fabric.min.js"></script>
+        <script type="text/javascript" src="js/svg-pan-zoom/svg-pan-zoom.min.js"></script>
+        <script type="text/javascript" src="js/viz.js/viz.js"></script>
+        <script type="text/javascript" src="js/js/getURLParams.js"></script>
+        <script type="text/javascript" src="js/js/getURLParams.js"></script>
+        <script src="js/rdfjs/rdf-ext-all-latest.js"    type="text/javascript" charset="utf-8"></script>
+        <script src="js/rdfjs/rdf-ext-0.3.0.js"    type="text/javascript" charset="utf-8"></script>        
+    </head>
+<body>
+      <div id="app">
+         <div id="panes" class="split split-horizontal">
+            <div id="editor" class="split">
+
+            </div>
+            <div id="graph" class="split">
+               <div id="options">
+                <label id="lang">
+                  Lang:
+                  <select onchange="editorLang(this.value)">
+                     <option selected="selected">turtle</option>
+                     <option>xml</option>
+                     <option>javascript</option>
+                     <option>dot</option>
+                      </select>
+                     </label>
+                     <label id="theme">
+                  Theme:
+                  <select onchange="editorTheme(this.value)">
+                     <option selected="selected">cobalt</option>
+                     <option>dawn</option>
+                     <option>eclipse</option>
+                     <option>github</option>
+                    </select>
+                     </label>
+                     <button onclick="go()">Go</button>
+                    <!-- button onclick="getRDF()">Get RDF</button -->
+                    <!-- button onclick="getSubjects()">Subjects</button -->
+                  <label id="subjectsSel">
+                      Subjects:
+                      <select id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))">
+                         
+                      </select>
+                  </label>
+                        <label id="engine">
+                     Viz:
+                     <select>
+                        <option>circo</option>
+                        <option selected="selected">dot</option>
+                        <option>fdp</option>
+                        <option>neato</option>
+                        <option>osage</option>
+                        <option>twopi</option>
+                            </select>
+                        </label>
+                        <label id="format">
+                     Fmt:
+                     <select>
+                        <option selected="selected">svg</option>
+                        <option>png-image-element</option>
+                        <option>json</option>
+                        <option>xdot</option>
+                        <option>plain</option>
+                        <option>ps</option>
+                            </select>
+                        </label>
+                        <label id="raw">
+                            <input type="checkbox"/>raw</label>
+                        
+                        <label id="url">URL:
+                        <input id="urlVal" value="https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/DCAT_v2_summary.dot"></input>
+                      </label>
+                        <button onClick="load_url(document.querySelector('#url input').value)">Load URL</button>
+                        <a href="https://github.com/pwin/model-viewer" target="_repo">[repo]</a>
+                    </div>
+                    <div id="output">
+                  <div id="error"/>
+               </div>
+            </div>
+         </div>
+      </div>
+      <script type="text/javascript" src="resources/viz.js.app.js"></script>
+      <script>
+      // Create the XHR object.
+function createCORSRequest(method, url) {
+  var xhr = new XMLHttpRequest();
+  if ("withCredentials" in xhr) {
+    //alert("with Credentials");
+    // XHR for Chrome/Firefox/Opera/Safari.
+    xhr.open(method, url, true);
+    xhr.setRequestHeader("Accept", "text/plain");
+  } else if (typeof XDomainRequest != "undefined") {
+    // XDomainRequest for IE.
+    xhr = new XDomainRequest();
+    //alert("Domain request");
+    xhr.open(method, url);
+  } else {
+    // CORS not supported.
+    xhr = null;
+  }
+  return xhr;
+}
+
+
+// Make the actual CORS request.
+function makeCorsRequest(url) {
+
+  var xhr = createCORSRequest('GET', url);
+  if (!xhr) {
+    alert('CORS not supported');
+    return;
+  }
+  // Response handlers.
+  xhr.onload = function() {
+    var text = xhr.responseText;
+    editor.setValue(text);
+  };
+  xhr.onerror = function() {
+    alert('Woops, there was an error making the request.');
+  };
+  xhr.send();
+}
+
+  //some test URLs
+  var url1 = 'https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/';
+  var url = 'simple1.dot';
+
+function driver(url){
+  if(confirm("do you want to change the data source?")){
+    var f = url1 + url;
+    console.log(f)
+  makeCorsRequest(f);
+  }
+  else {
+    return false
+  }
+}
+
+function load_url(url){
+  if(confirm("do you want to change the data source?")){
+    var f = url;
+    console.log(f)
+  makeCorsRequest(f);
+  }
+  else {
+    return false
+  }
+}
+
+var dot = getUrlParameter('dot');
+if (dot && isValidURL(dot) && confirm("do you want to change the data source to \n" + dot + "\n?")) {
+ 
+    document.getElementById("urlVal").value  = dot
+    makeCorsRequest(dot);
+    updateGraph();
+}
+//else
+//{
+ //makeCorsRequest(url1 + url);
+// updateGraph(); 
+//}
+
+
+
+</script>
+</body>
+</html>
