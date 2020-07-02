@@ -32,10 +32,13 @@ var startupRDF = `
     editor.getSession().setMode("ace/mode/dot");
     editor.setTheme("ace/theme/cobalt");
     editor.setValue(startupRDF);
+    var editorAvailable = true;
 
     var parser = new DOMParser();
     var worker;
     var result;
+    var stream;
+    var result1;
 
     var graphStore =  new rdf.dataset();
     var parserN3 = new N3Parser();
@@ -43,7 +46,8 @@ var startupRDF = `
     var subjectsList = [];
     var subjectSet;
     var dotText = '';
-    
+    //const element = document.querySelector('#subs');
+    //const choices = new Choices(element);    
     
     var beforeUnloadMessage = null;
 
@@ -96,11 +100,100 @@ var startupRDF = `
 
   /**************  RDFJS STUFF */
 
+  function convertTo(what){
+    let myParser ;
+    let serialiser;
+    let inputText  = editor.getValue();
+    let input = new Readable({
+      read: () => {
+        input.push(inputText)
+        input.push(null)
+      }
+    });
+
+    if(inputText.trim().startsWith('<')){
+      myParser = new RdfXmlParser.RdfXmlParser();
+    }
+    else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') )
+    {
+      myParser = new JsonLdParser();
+    }
+    else if(document.querySelector("#lang select").value === "turtle")
+    {
+      myParser = new N3Parser();
+  }
+  
+  let output = myParser.import(input);
+  editorAvailable = false;
+  switch(what){
+    case "turtle":
+      result1='';
+      serialiser = new NTriplesSerializer()
+      stream = serialiser.import(output);
+      stream.on('data', (data) => {
+      result1 += data.toString()
+      })
+
+      rdf.waitFor(stream).then(() => {
+        editor.setValue('')
+        editor.setValue(result1)
+        editorAvailable = true;
+      })
+      break;
+    case "rdfxml":
+      result1 ='';
+      serialiser = new XMLSerializer();
+      stream = serialiser.import(output);
+      stream.on('data', (data) => {
+      result1 += JSON.stringify(data, undefined, 2)
+      })
+
+      rdf.waitFor(stream).then(() => {
+        editor.setValue('')
+        editor.setValue(result1)
+        editorAvailable = true;
+      })
+      break;
+    case "jsonld":
+      result1 ='';
+      serialiser = new JsonLdSerializer({output: "string"});
+      stream = serialiser.import(output);
+      stream.on('data', (data) => {
+      result1 += JSON.stringify(data, undefined, 2)
+      })
+
+      rdf.waitFor(stream).then(() => {
+        editor.setValue('')
+        editor.setValue(result1)
+        editorAvailable = true;
+      })
+
+      //stream.on('end', () => {
+      //editor.setValue('')
+      //editor.setValue('Hello ' + result1)
+      //editorAvailable = true;
+      //});
+      break;
+    default:
+      editor.setValue(inputText)
+      editorAvailable = true;
+  }
+  editorAvailable = true;
+  return 
+  }
+
+
+  function addData(data){
+    editor.setValue(data)
+  }
+
+
+/*
 function getRDF(){
   graphStore =  new rdf.dataset();
   let inputText = editor.getValue()
   if(inputText.toLowerCase().startsWith('digraph')) {
-      alert("this is a dot file");
+      if(debug){alert("this is a dot file")}
       document.querySelector("#lang select").value = "dot";
       dotText=inputText; 
       updateGraph(); 
@@ -122,7 +215,7 @@ function getRDF(){
 });
 }
 }
-
+*/
 
 function getSubjects(){
 
@@ -133,7 +226,7 @@ let subjects = new Set();
  if(debug){console.log(subjectsList)}
  document.querySelector("#subjectsSel select").innerHTML=""
  for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
- //createDot()
+
 }
 
 
@@ -168,17 +261,16 @@ while (myNode.firstChild) {
 
 
 var go = function(){
-if(debug){alert("go")}
+if(debug){console.log("go")}
 graphStore =  new rdf.dataset();
 let inputText = editor.getValue()
 if(inputText.trim().toLowerCase().startsWith('digraph')) {
-    //alert("this is a dot file");
     document.querySelector("#lang select").value = "dot";
     dotText=inputText; 
     updateGraph(); 
     return
 }
-else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle") {
+else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle" && document.querySelector("#lang select").value != "javascript") {
   document.querySelector("#error").innerHTML="this is an XML file dot file";
   document.querySelector("#lang select").value = "xml";
   let input = new Readable({
@@ -192,6 +284,48 @@ else if(inputText.trim().startsWith('<') && document.querySelector("#lang select
   let output = myParser.import(input);
   subjectSet = new Set();
   output.on('data', quad => {
+  graphStore.add(quad)
+  subjectSet.add(quad.subject.value)
+    
+     if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
+     if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
+  });
+  
+  output.on('end', () => {
+  for(let _q of graphStore._quads){subjectSet.add(_q.subject.value);}
+  if(debug){console.log(subjectSet)}
+  if(debug){console.log([...subjectSet])}
+      //for(let _q of graphStore._quads){subjectSet.add(_q.subject.value); console.log(_q.subject.value)}
+    if(debug){console.log("Subjects:  ", subjectSet)}
+     subjectsList = Array.from(subjectSet);
+     if(debug){console.log(subjectsList)}
+     document.querySelector("#subjectsSel select").innerHTML=""
+     for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
+  });
+  
+  output.on('error', () => {
+    document.querySelector("#error").innerHTML="#1: There was an error in parsing but no further detail.";
+  });
+
+  return
+}
+
+else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') ) {
+  document.querySelector("#error").innerHTML="this is an JSON-LD file";
+  document.querySelector("#lang select").value = "javascript";
+  let input = new Readable({
+    read: () => {
+      input.push(inputText)
+      input.push(null)
+    }
+  });
+  const myParser = new JsonLdParser();
+
+  let output = myParser.import(input);
+
+  subjectSet = new Set();
+  output.on('data', quad => {
+    if(debug){console.log(quad)}
   graphStore.add(quad)
   subjectSet.add(quad.subject.value)
     
@@ -218,7 +352,10 @@ else if(inputText.trim().startsWith('<') && document.querySelector("#lang select
 
   return
 }
-else{
+
+else {
+  document.querySelector("#error").innerHTML="this is assumed to be a turtle file";
+  document.querySelector("#lang select").value = "turtle";
 let input = new Readable({
 read: () => {
   input.push(inputText)
@@ -379,6 +516,7 @@ output.on('error', () => {
     }
 
     editor.on("change", function() {
+      if(editorAvailable === false){return}
       //updateGraph();
       if(editor.getValue().trim().toLowerCase().startsWith('digraph')) { go();}
       else {
@@ -413,3 +551,4 @@ output.on('error', () => {
     });
 
     updateGraph();
+

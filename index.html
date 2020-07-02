@@ -3,6 +3,7 @@
         <title>Dot Viewer</title>
         <meta charset="utf-8"/>
         <link rel="stylesheet" type="text/css" href="css/viz.js.css"/>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
         <!-- script type="text/javascript" src="js/ace/ace.js"></script -->
         <script src="js/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" src="js/Split.js/split.min.js"></script>
@@ -12,7 +13,8 @@
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
         <script src="js/rdfjs/rdf-ext-all-latest.js"    type="text/javascript" charset="utf-8"></script>
-        <script src="js/rdfjs/rdf-ext-0.3.0.js"    type="text/javascript" charset="utf-8"></script>        
+        <script src="js/rdfjs/rdf-ext-0.3.0.js"    type="text/javascript" charset="utf-8"></script> 
+        <!-- script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script -->     
     </head>
 <body>
       <div id="app">
@@ -45,7 +47,7 @@
                     <!-- button onclick="getSubjects()">Subjects</button -->
                   <label id="subjectsSel">
                       Subjects:
-                      <select id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))">
+                      <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))">
                          
                       </select>
                   </label>
@@ -78,6 +80,9 @@
                         <input id="urlVal" value="https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/DCAT_v2_summary.dot"></input>
                       </label>
                         <button onClick="load_url(document.querySelector('#url input').value)">Load URL</button>
+                        <!-- button onClick="convertTo('turtle')">To Turtle</button -->
+                        <!-- button onClick="convertTo('rdfxml')">To RDF/XML</button -->
+                        <button onClick="convertTo('jsonld')">To JSON-LD</button>
                         <a href="https://github.com/pwin/model-viewer" target="_repo">[repo]</a>
                     </div>
                     <div id="output">
