@@ -39,6 +39,7 @@ var startupRDF = `
     var result;
     var stream;
     var result1;
+    var prefixes;
 
     var graphStore =  new rdf.dataset();
     var parserN3 = new N3Parser();
@@ -235,19 +236,29 @@ function createDot(selectedSubjects){
   for ( let ss of selectedSubjects) {
   let nn = graphStore.match(rdf.namedNode(ss)).toArray()
   for(let g_quad of nn ) {
-     value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
+    if(g_quad.object.termType === "Literal") {
+      value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
+      value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
+     } else
+     {value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '}
   }
   let nb = graphStore.match(rdf.blankNode(ss)).toArray()
   for(let g_quad of nb ) {
+    if(g_quad.object.termType === "Literal") {
      value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
-  }  
+     value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
+    } else
+    {value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '}
+     
   }
+}
   if(debug){console.log("value1",value1)}
   dotText = 'digraph { node [shape="box", style="rounded"]; rankdir="LR"; ratio="auto"; ' + value1 + ' }';
   if(debug){console.log("dotText",dotText)}
   value1='';
   updateGraph(dotText)
 }
+
 
 function clearNode(id){
 {
@@ -363,7 +374,9 @@ read: () => {
 }
 });
 
+//parserN3._resetBlankNodeIds();
 let output = parserN3.import(input);
+prefixes = {};
 
 subjectSet = new Set();
 output.on('data', quad => {
