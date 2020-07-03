@@ -239,6 +239,10 @@ function createDot(selectedSubjects){
     if(g_quad.object.termType === "Literal") {
       value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
       value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
+     } else 
+     if(g_quad.object.termType === "BlankNode") {
+      value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
+      value1 += '   "' + g_quad.object.value + '"  [color="orange" ];\n '
      } else
      {value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '}
   }
@@ -247,8 +251,12 @@ function createDot(selectedSubjects){
     if(g_quad.object.termType === "Literal") {
      value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
      value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
+     value1 += '   "' + ss + '"  [color="orange" ];\n '
     } else
-    {value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '}
+    {
+    value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n ';
+    value1 += '   "' + ss + '"  [color="orange" ];\n ';
+  }
      
   }
 }
