@@ -11,7 +11,8 @@ var startupRDF = `
     rdf:type contact:Person;
     contact:fullName "Eric Miller";
     contact:mailbox <mailto:em@w3.org>;
-    contact:personalTitle "Dr.".
+    contact:personalTitle "Dr." ;
+    contact:eg <http://www.w3.org/TR/rdf-syntax-grammar> .
 
 <http://www.w3.org/TR/rdf-syntax-grammar> 
     dc:title "RDF/XML Syntax Specification (Revised)";
@@ -27,6 +28,10 @@ var startupRDF = `
 
 ## To view your Turtle RDF or to edit a new file just delete what is in
 ## this pane and proceed as above to review
+
+## On the SVG image, if you mouse over the model there are hyperlinks in
+## the nodes.  Clicking on a node will identify the subject node/s for which
+## the clicked node is an object
     `
     var editor = ace.edit("editor");
     editor.getSession().setMode("ace/mode/dot");
@@ -231,20 +236,46 @@ let subjects = new Set();
 }
 
 
+function findTriplesForObject(objectNodeValue){
+  let onvs = objectNodeValue.toString()
+  subjectNodes = []
+  let nn0 = graphStore.match(rdf.namedNode(onvs)).toArray()
+  let nn = nn0.concat(graphStore.match(rdf.blankNode(onvs)).toArray())
+
+  for(let g_quad of graphStore._quads ) {
+
+    if(g_quad.object.value.toString() == onvs) {
+
+      subjectNodes.push(g_quad.subject.value)
+
+    }
+}
+alert("Matching Subjects:\n" +  subjectNodes.join('\r\n'))
+}
+
+
+
+
 function createDot(selectedSubjects){
   let value1 = '';
   for ( let ss of selectedSubjects) {
+    value1 += '   "' + ss +   '"  [URL="javascript:findTriplesForObject([\'' + ss  + '\'])" ];\n ';
   let nn = graphStore.match(rdf.namedNode(ss)).toArray()
   for(let g_quad of nn ) {
     if(g_quad.object.termType === "Literal") {
       value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
       value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
+      value1 += '   "' + g_quad.object.value +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n ';  
      } else 
      if(g_quad.object.termType === "BlankNode") {
       value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
       value1 += '   "' + g_quad.object.value + '"  [color="orange" ];\n '
+      value1 += '   "' + g_quad.object.value +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
      } else
-     {value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '}
+     {
+     value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
+     value1 += '   "' + g_quad.object.value +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
+    }
   }
   let nb = graphStore.match(rdf.blankNode(ss)).toArray()
   for(let g_quad of nb ) {
@@ -252,10 +283,12 @@ function createDot(selectedSubjects){
      value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n '
      value1 += '   "' + g_quad.object.value + '"  [color="blue" ];\n '
      value1 += '   "' + ss + '"  [color="orange" ];\n '
+     value1 += '   "' + g_quad.object.value +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
     } else
     {
     value1 += '  "' + ss + '" -> "' + g_quad.object.value + '"  [label="' + g_quad.predicate.value + '"];\n ';
     value1 += '   "' + ss + '"  [color="orange" ];\n ';
+    value1 += '   "' + g_quad.object.value +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
   }
      
   }
@@ -280,6 +313,7 @@ while (myNode.firstChild) {
 
 
 var go = function(){
+  let count = false;
 if(debug){console.log("go")}
 graphStore =  new rdf.dataset();
 let inputText = editor.getValue()
@@ -303,6 +337,8 @@ else if(inputText.trim().startsWith('<') && document.querySelector("#lang select
   let output = myParser.import(input);
   subjectSet = new Set();
   output.on('data', quad => {
+    if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
+    if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
   graphStore.add(quad)
   subjectSet.add(quad.subject.value)
     
@@ -339,12 +375,15 @@ else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') ) {
     }
   });
   const myParser = new JsonLdParser();
+  
 
   let output = myParser.import(input);
 
   subjectSet = new Set();
   output.on('data', quad => {
     if(debug){console.log(quad)}
+    if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
+    if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
   graphStore.add(quad)
   subjectSet.add(quad.subject.value)
     
@@ -388,12 +427,17 @@ prefixes = {};
 
 subjectSet = new Set();
 output.on('data', quad => {
+  if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
+  if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
 graphStore.add(quad)
 subjectSet.add(quad.subject.value)
+
 
  if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
  if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
 });
+
+//output.on('prefix', (prefix, namespace) => {alert("hi")});
 
 output.on('end', () => {
 //graphStore.addQuads(output);
@@ -406,6 +450,7 @@ if(debug){console.log("Subjects:  ", subjectSet)}
  if(debug){console.log(subjectsList)}
  document.querySelector("#subjectsSel select").innerHTML=""
  for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
+ //alert(JSON.stringify(prefixes));
 });
 
 output.on('error', () => {
