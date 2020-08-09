@@ -29,11 +29,22 @@ var startupRDF = `
 ## 2: click on any subject or blank node identifier and wait a second or so
 
 ## To view your Turtle RDF or to edit a new file just delete what is in
-## this pane and proceed as above to review
+## this pane and proceed as above to review.
+## To upload a local file use the "Choose File" button at the top left of
+## the graphic window
 
 ## On the SVG image, if you mouse over the model there are hyperlinks in
 ## the nodes.  Clicking on a node will identify the subject node/s for which
 ## the clicked node is an object
+
+## Select the 'raw' checkbox to get the raw SVG code
+
+## PNG is the selection for PNG images and these can be copied or saved using
+## the right mouse click context menu
+
+
+## The editor also recognises graphviz 'dot' files if they start with "digraph".
+## This is a good mode to quickly diagram RDF
     `
     var editor = ace.edit("editor");
     editor.getSession().setMode("ace/mode/dot");
@@ -131,7 +142,7 @@ var startupRDF = `
     });
 
     if(inputText.trim().startsWith('<')){
-      myParser = new RdfXmlParser.RdfXmlParser();
+      myParser = new RdfXmlStreamingParser.RdfXmlParser();
     }
     else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') )
     {
@@ -326,7 +337,7 @@ if(inputText.trim().toLowerCase().startsWith('digraph')) {
     return
 }
 else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle" && document.querySelector("#lang select").value != "javascript") {
-  document.querySelector("#error").innerHTML="this is an XML file dot file";
+  document.querySelector("#error").innerHTML="this is an XML file";
   document.querySelector("#lang select").value = "xml";
   let input = new Readable({
     read: () => {
@@ -335,7 +346,7 @@ else if(inputText.trim().startsWith('<') && document.querySelector("#lang select
     }
   });
   //RdfXmlParser()
-  const myParser = new RdfXmlParser.RdfXmlParser();
+  const myParser = new RdfXmlStreamingParser.RdfXmlParser();
 
   let output = myParser.import(input);
   subjectSet = new Set();
