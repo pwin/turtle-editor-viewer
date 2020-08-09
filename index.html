@@ -24,6 +24,7 @@
 
             </div>
             <div id="graph" class="split">
+              <input type="file" id="openbtn" onchange="openCode(this.files)" value="Open">
                <div id="options">
                 <label id="lang">
                   Lang:
@@ -69,7 +70,7 @@
                      Fmt:
                      <select>
                         <option selected="selected">svg</option>
-                        <option>png-image-element</option>
+                        <option>png</option>
                         <option>json</option>
                         <option>xdot</option>
                         <option>plain</option>
@@ -88,6 +89,7 @@
                         <button onClick="convertTo('jsonld')">To JSON-LD</button>
                         <a href="https://github.com/pwin/model-viewer" target="_repo">[repo]</a>
                         <a href="/">[HOME]</a>
+                        
                     </div>
                     <div id="output">
                   <div id="error"/>
@@ -176,7 +178,15 @@ if (dot && isValidURL(dot) && confirm("do you want to change the data source to 
 // updateGraph(); 
 //}
 
-
+function openCode(files) {
+                var file = files[0]
+                if (!file) return;
+                reader = new FileReader();
+                reader.onload = function() {
+                    editor.session.setValue(reader.result)
+                }  
+                reader.readAsText(file) 
+            }
 
 </script>
 </body>
