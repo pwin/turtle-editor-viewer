@@ -74,6 +74,8 @@ var startupRDF = `
     
     var beforeUnloadMessage = null;
 
+    var patt = /&(?!(?:#[0-9]+|[a-z]+);)/gi  // Useed for matching ampersands that are not already part of anXML entity
+
     var resizeEvent = new Event("paneresize");
     Split(['#editor', '#graph'], {
       sizes: [25, 75],
@@ -267,16 +269,16 @@ function createDot(selectedSubjects){
     if(g_quad.object.termType === "Literal") {
       value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
       value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n ';  
+      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")  + '\'])" ];\n ';  
      } else 
      if(g_quad.object.termType === "BlankNode") {
       value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
       value1 += '   "' + shrink(g_quad.object.value) + '"  [color="orange" ];\n '
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
+      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
      } else
      {
      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
+     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
     }
   }
   let nb = graphStore.match(rdf.blankNode(ss)).toArray()
@@ -285,12 +287,12 @@ function createDot(selectedSubjects){
      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
      value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
      value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n '
-     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
+     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
     } else
     {
     value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
     value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
-    value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value  + '\'])" ];\n '; 
+    value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
   }
      
   }
