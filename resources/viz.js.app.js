@@ -540,7 +540,7 @@ output.on('error', () => {
       // Instead of asking for png-image-element directly, which we can't do in a worker,
       // ask for SVG and convert when updating the output.
 
-      if (params.options.format == "png-image-element") {
+      if (params.options.format == "png") {
         params.options.format = "svg";
       }
 
@@ -588,7 +588,7 @@ output.on('error', () => {
         window.addEventListener('resize', function(e) {
           panZoom.resize();
         });
-      } else if (document.querySelector("#format select").value == "png-image-element") {
+      } else if (document.querySelector("#format select").value == "png") {
         var image = Viz.svgXmlToPngImageElement(result);
         graph.appendChild(image);
       } else {
