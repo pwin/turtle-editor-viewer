@@ -12,10 +12,7 @@
         <script type="text/javascript" src="js/viz.js/viz.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
-        <!--  script src="js/rdfjs/rdf-ext-all-1.0.0.min.js"    type="text/javascript" charset="utf-8"></script -->
-        <!-- script src="js/rdfjs/rdf-ext-0.3.0.js"    type="text/javascript" charset="utf-8"></script --> 
-        <script src="js/rdfjs/rdf-ext-1.4.0.js"    type="text/javascript" charset="utf-8"></script> 
-        <!-- script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script -->     
+        <script src="js/rdfjs/rdf-ext-1.6.0.js"    type="text/javascript" charset="utf-8"></script>     
     </head>
 <body>
       <div id="app">
@@ -24,8 +21,11 @@
 
             </div>
             <div id="graph" class="split">
+              <div id="options">
+                <div>
               <input type="file" id="openbtn" onchange="openCode(this.files)" value="Open">
-               <div id="options">
+              <input type="button" id="savebtn" value="Download File">
+              </div>
                 <label id="lang">
                   Lang:
                   <select onchange="editorLang(this.value)">
@@ -121,7 +121,7 @@ function createCORSRequest(method, url) {
 
 
 // Make the actual CORS request.
-function makeCorsRequest(url) {
+function makeCorsRequest(url, type) {
 
   var xhr = createCORSRequest('GET', url);
   if (!xhr) {
@@ -131,10 +131,14 @@ function makeCorsRequest(url) {
   // Response handlers.
   xhr.onload = function() {
     var text = xhr.responseText;
+    if(type==="rdfa"){alert("RDFa");
+    parseRDFa(text)}
+    else {
     editor.setValue(text);
+  }
   };
-  xhr.onerror = function() {
-    alert('Woops, there was an error making the request.');
+  xhr.onerror = function(e) {
+    alert('Woops, there was an error making the request.' + xhr.status + ' : ' + xhr.statusText);
   };
   xhr.send();
 }
@@ -147,7 +151,7 @@ function driver(url){
   if(confirm("do you want to change the data source?")){
     var f = url1 + url;
     console.log(f)
-  makeCorsRequest(f);
+  makeCorsRequest(f, '');
   }
   else {
     return false
@@ -158,7 +162,7 @@ function load_url(url){
   if(confirm("do you want to change the data source?")){
     var f = url;
     console.log(f)
-  makeCorsRequest(f);
+  makeCorsRequest(f, '');
   }
   else {
     return false
@@ -169,14 +173,17 @@ var dot = getUrlParameter('dot');
 if (dot && isValidURL(dot) && confirm("do you want to change the data source to \n" + dot + "\n?")) {
  
     document.getElementById("urlVal").value  = dot
-    makeCorsRequest(dot);
+    makeCorsRequest(dot, '');
     updateGraph();
 }
-//else
-//{
- //makeCorsRequest(url1 + url);
-// updateGraph(); 
-//}
+var rdfa = getUrlParameter('rdfa');
+if (rdfa && isValidURL(rdfa) && confirm("do you want to change the data source to \n" + rdfa + "\n?")) {
+ 
+    document.getElementById("urlVal").value  = rdfa
+    makeCorsRequest(rdfa, "rdfa");
+    updateGraph();
+}
+
 
 function openCode(files) {
                 var file = files[0]
@@ -188,6 +195,10 @@ function openCode(files) {
                 reader.readAsText(file) 
             }
 
+document.getElementById("savebtn").addEventListener("click", ()=>{
+    var file = new File([editor.getValue().trim()], "myFile.ttl", {type: "text/plain;charset=utf-8"});
+    saveAs(file);
+})
 </script>
 </body>
 </html>
