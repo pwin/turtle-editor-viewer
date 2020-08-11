@@ -45,6 +45,15 @@ var startupRDF = `
 
 ## The editor also recognises graphviz 'dot' files if they start with "digraph".
 ## This is a good mode to quickly diagram RDF
+
+## QUERYSTRINGS
+## if a URL is connected to the editor with ?dot= then the content is brought into
+## the editor - this is useful for bringing dot and turtle files into the editor
+##
+## If the URL is connected with ?rdfa= then the document at the URL is parsed and the 
+## RDFa triples are extracted and added to the editor as ntriples.
+##
+
     `
     var editor = ace.edit("editor");
     editor.getSession().setMode("ace/mode/dot");
@@ -131,6 +140,72 @@ var startupRDF = `
 
 
   /**************  RDFJS STUFF */
+  function streamToString (stream) {
+    const content = [] 
+    stream.on('data', chunk => {
+      content.push(chunk)
+    })
+    return rdf.waitFor(stream).then(() => {
+      return content.join('')
+    })
+  }
+
+
+  function parseRDFa(inputText) {
+    let input = new Readable({
+      read: () => {
+        input.push(inputText)
+        input.push(null)
+      }
+    });
+    editor.setValue('')
+      const myParser = new RdfaParser.RdfaParser({ baseIRI: 'http://dummy.base.uri/', contentType: 'text/html' });
+      let output = myParser.import(input);
+      subjectSet = new Set();
+      output.on('data', quad => {
+        if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
+        if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
+      graphStore.add(quad)
+      subjectSet.add(quad.subject.value)
+       if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
+       if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
+      });
+      
+      output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)
+      });
+      
+      
+      output.on('end', () => {
+      graphStore.forEach((quad) => {subjectSet.add(quad.subject.value)})
+      if(debug){console.log(subjectSet)}
+      if(debug){console.log([...subjectSet])}
+      
+      if(debug){console.log("Subjects:  ", subjectSet)}
+       subjectsList = Array.from(subjectSet);
+       if(debug){console.log(subjectsList)}
+       document.querySelector("#subjectsSel select").innerHTML=""
+       for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
+      });
+      
+      output.on('error', () => {
+        //
+      });
+
+    var result1 = ''
+     const serializerNtriples = new SerializerNtriples()
+     const inputStream = graphStore.toStream()
+     const outputStream = serializerNtriples.import(inputStream)
+     
+     outputStream.on('data', ntriples => {
+       if(ntriples != "undefined"){
+       result1 += ntriples.toString()
+       }
+     })
+     
+     outputStream.on('end', () => {
+      editor.setValue(result1)
+    })     
+  }
 
   function convertTo(what){
     let myParser ;
@@ -144,7 +219,7 @@ var startupRDF = `
     });
 
     if(inputText.trim().startsWith('<')){
-      myParser = new RdfXmlStreamingParser.RdfXmlParser();
+      myParser = new RdfXmlStreamingParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
     }
     else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') )
     {
@@ -224,7 +299,7 @@ var startupRDF = `
 function getSubjects(){
 
 let subjects = new Set();
-  for(let _q of graphStore._quads){subjects.add(_q.subject.value)}
+  graphStore.forEach((g_quad) => {subjects.add(g_quad.subject.value)});
   if(debug){console.log("Subjects:  ", subjects)}
  subjectsList = Array.from(subjects);
  if(debug){console.log(subjectsList)}
@@ -348,7 +423,7 @@ else if(inputText.trim().startsWith('<') && document.querySelector("#lang select
     }
   });
   //RdfXmlParser()
-  const myParser = new RdfXmlStreamingParser.RdfXmlParser();
+  const myParser = new RdfXmlStreamingParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
 
   let output = myParser.import(input);
   subjectSet = new Set();
@@ -452,7 +527,7 @@ output.on('data', quad => {
 graphStore.add(quad)
 subjectSet.add(quad.subject.value)
  if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
- if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
+ if(debug){console.log("Canonical:  ", graphStore.toString())}
 });
 
 output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)

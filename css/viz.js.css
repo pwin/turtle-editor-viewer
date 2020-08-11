@@ -154,3 +154,12 @@
       resize: both;
       overflow: auto;
   }
+
+  input[type=button]{
+    background-color: gainsboro;
+    border: none;
+    color: black;
+    height:30px;
+    width:95px;
+    margin: 5px;
+  }
