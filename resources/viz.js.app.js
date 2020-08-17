@@ -351,10 +351,18 @@ function createDot(selectedSubjects){
       value1 += '   "' + shrink(g_quad.object.value) + '"  [color="orange" ];\n '
       value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
      } else
-     {
+     if(document.querySelector("#type input").checked)
+     {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
+     else {
      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
     }
+  }
+    else
+    {
+      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
+      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+     }
   }
   let nb = graphStore.match(rdf.blankNode(ss)).toArray()
   for(let g_quad of nb ) {
@@ -364,6 +372,15 @@ function createDot(selectedSubjects){
      value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n '
      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
     } else
+    if(document.querySelector("#type input").checked)
+    {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
+    else {
+      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
+      value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
+      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+    }
+  }
+else  
     {
     value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
     value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
@@ -713,5 +730,8 @@ output.on('error', () => {
       createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
     });
 
+    document.querySelector("#type input").addEventListener("change", function() {
+      createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
+    });
     updateGraph();
 
