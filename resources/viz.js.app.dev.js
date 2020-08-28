@@ -1,8 +1,8 @@
 //const { RdfXmlParser } = require("../js/rdfjs/rdf-ext-1.0.0");
 
-//const { xmlScribe } = require("../js/rdfjs/rdf-ext-1.7.1");
+//const { rdfparserjsonld } = require("../js/rdfjs/rdf-ext-1.6.0");
 
-var debug = false;
+var debug = true;
 var beforeUnloadMessage = null;
 var startupRDF = `
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
@@ -70,12 +70,13 @@ var startupRDF = `
     var result1;
     var prefixes;
 
+    
     //var graphStore =  new rdf.dataset();
     var graphStore =  new rdfdi();
     //var parserN3 = new N3Parser();
-    var parserN3 //= new N3Parser();
+    var parserN3 = new N3Parser();
     //var rdfParser = new RdfXmlParser.RdfXmlParser();
-    var rdfParser //= new RdfXmlStreamingParser.RdfXmlParser();
+    var rdfParser = new RdfXmlParser.RdfXmlParser();
     var subjectsList = [];
     var subjectSet;
     var dotText = '';
@@ -97,6 +98,11 @@ var startupRDF = `
         }
       }
     });
+
+
+    //const ct = rdfparse.RdfParser.CONTENT_MAPPINGS
+
+
 
     function shrink(iri) {
         const found = Array.from(Object.entries(myprefixes)).find(([, baseIRI]) => iri.startsWith(baseIRI))
@@ -211,6 +217,7 @@ var startupRDF = `
 
   function convertTo(what){
     let myParser ;
+    let serialiser;
     let inputText  = editor.getValue();
     let input = new Readable({
       read: () => {
@@ -219,27 +226,26 @@ var startupRDF = `
       }
     });
 
-    if(isXML(inputText.trim())){
-      //myParser = new RdfXmlStreamingParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
-      myParser = "application/rdf+xml"
+    if(inputText.trim().startsWith('<')){
+      myParser = new RdfXmlParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
     }
     else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') )
     {
       //myParser = new JsonLdParser();
-      myParser = "application/ld+json"
+      myParser = new jsonldStreamingParser.JsonLdParser({ baseIRI: 'http://dummy.base.uri/'})
     }
     else if(document.querySelector("#lang select").value === "turtle")
     {
-      //myParser = new ParserN3();
-      myParser = "text/turtle"
+      myParser = new N3Parser();
   }
   
-  let output = formats.parsers.import(myParser, input)
+  let output = myParser.import(input);
   editorAvailable = false;
   switch(what){
     case "turtle":
       result1='';
-      stream = formats.serializers.import('text/turtle', output);
+      serialiser = new NTriplesSerializer()
+      stream = serialiser.import(output);
       stream.on('data', (data) => {
       result1 += data.toString()
       })
@@ -250,12 +256,12 @@ var startupRDF = `
         editorAvailable = true;
       })
       break;
-    case "ttl":
+    case "rdfxml":
       result1 ='';
-      //serialiser = new XMLSerializer();
-      stream = turtleScribe(output);
+      serialiser = new XMLSerializer();
+      stream = serialiser.import(output);
       stream.on('data', (data) => {
-      result1 += data.toString()
+      result1 += JSON.stringify(data, undefined, 2)
       })
 
       rdf.waitFor(stream).then(() => {
@@ -264,33 +270,26 @@ var startupRDF = `
         editorAvailable = true;
       })
       break;
-      case "rdfxml":
-        result1 ='';
-        //serialiser = new XMLSerializer();
-        stream = xmlScribe(output);
-        stream.on('data', (data) => {
-        result1 += data.toString()
-        })
-  
-        rdf.waitFor(stream).then(() => {
-          editor.setValue('')
-          editor.setValue(result1)
-          editorAvailable = true;
-        })
-        break;      
     case "jsonld":
       result1 ='';
-      stream = formats.serializers.import('application/ld+json', output);
+      //serialiser = new JsonLdSerializer({output: "string"});
+      serialiser = new SerializerJsonld({output: "string"});
+      stream = serialiser.import(output);
       stream.on('data', (data) => {
-      result1 +=  data.toString()
+      result1 += JSON.stringify(data, undefined, 2)
       })
 
       rdf.waitFor(stream).then(() => {
         editor.setValue('')
-        editor.setValue(JSON.stringify(JSON.parse(result1), undefined, 2))
+        editor.setValue(result1)
         editorAvailable = true;
       })
 
+      //stream.on('end', () => {
+      //editor.setValue('')
+      //editor.setValue('Hello ' + result1)
+      //editorAvailable = true;
+      //});
       break;
     default:
       editor.setValue(inputText)
@@ -425,43 +424,11 @@ while (myNode.firstChild) {
 
 function handleprefixes(prefix, namespace) {
   myprefixes[prefix] = namespace.value ;
-  if(debug){console.log(myprefixes)}
+  //if(debug){console.log(myprefixes)}
 }
 
-function isXML(xmlStr){
-    var parseXml;
-  
-    if (typeof window.DOMParser != "undefined") {
-      parseXml = function(xmlStr) {
-        return (new window.DOMParser()).parseFromString(xmlStr, "text/xml");
-      };
-    } else if (typeof window.ActiveXObject != "undefined" && new window.ActiveXObject("Microsoft.XMLDOM")) {
-      parseXml = function(xmlStr) {
-        var xmlDoc = new window.ActiveXObject("Microsoft.XMLDOM");
-        xmlDoc.async = "false";
-        xmlDoc.loadXML(xmlStr);
-        return xmlDoc;
-      };
-    } else {
-      return false;
-    }
-  
-    try {
-      var myXMLDoc = parseXml(xmlStr);
-      if(myXMLDoc.getElementsByTagName("parsererror").length > 0){
-          return false
-        }
-    } catch (e) {
-        alert(e)
-      return false;
-    }
-    return true;      
-  }
-
-
-
 var go = function(){
-  let count = false;
+let count = false;
 if(debug){console.log("go")}
 //graphStore =  new rdf.dataset();
 graphStore =  new rdfdi();
@@ -472,8 +439,7 @@ if(inputText.trim().toLowerCase().startsWith('digraph')) {
     updateGraph(); 
     return
 }
-//else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle" && document.querySelector("#lang select").value != "javascript") {
-   else if(isXML(inputText.trim())) {
+else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle" && document.querySelector("#lang select").value != "javascript") {
   document.querySelector("#error").innerHTML="this is an XML file";
   document.querySelector("#lang select").value = "xml";
   let input = new Readable({
@@ -483,9 +449,10 @@ if(inputText.trim().toLowerCase().startsWith('digraph')) {
     }
   });
   //RdfXmlParser()
-  //const myParser = new RdfXmlStreamingParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
-
-  let output = formats.parsers.import('application/rdf+xml', input)
+  //const myParser = new RdfXmlParser.RdfXmlParser({baseIRI: 'http://dummy.base.uri/'});
+  //const myParser = rdfparse
+  //const myParser = new rdfparse.RdfParser({contentType: "application/rdf+xml", baseURI: "http://my.dummy.uri"})
+  let output = formats.parsers.import('application/rdf+xml', input, {baseIRI: `http://base.iri.org`} )
   subjectSet = new Set();
   output.on('data', quad => {
     if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
@@ -528,14 +495,20 @@ else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') ) {
       input.push(null)
     }
   });
- //JsonLdParser()
-  //const myParser = new rdfparserjsonld();
- 
-  let output = formats.parsers.import('application/ld+json', input)
-
+ //JsonLdParser()r
+  //const myParser = new jsonld();
+  //const myParser = new rdfparse.RdfParser({contentType: "application/ld+json", baseURI: "http://my.dummy.uri"})
+  if(debug){console.log(typeof(input))}
+  let output = formats.parsers.import('application/ld+json', input, {baseIRI: `http://base.iri.org`} )
+ // output.on('data', quad => {    console.log(quad)  }) 
+ if(debug){console.log(typeof(output))}
+  
   subjectSet = new Set();
   output.on('data', quad => {
+    if(debug){console.log("HEYHEY")}
     if(debug){console.log(quad)}
+    if(debug){console.log(quad.subject.termType)}
+    if(debug){console.log(quad.object.termType)}
     if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
     if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
   graphStore.add(quad)
@@ -578,10 +551,17 @@ read: () => {
 });
 
 //parserN3
-let output = formats.parsers.import('text/turtle', input)
+
+//let output = parserN3.import(input);  
+//const myParser = new rdfparse.RdfParser.default
+//let output = myParser.parse(input, {contentType: "text/turtle"})
+if(debug){console.log(typeof(input))}
+let output = formats.parsers.import('text/turtle', input, {baseIRI: `http://base.iri.org`} )
 
 subjectSet = new Set();
 output.on('data', quad => {
+  if(debug){console.log("HOHO")}
+  if(debug){console.log(quad)}
   if(quad.subject.termType === "BlankNode"  && count===false) {quad.subject.constructor.nextId = 0 ; count=true;}
   if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
 graphStore.add(quad)
