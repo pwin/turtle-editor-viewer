@@ -106,6 +106,49 @@ var startupRDF = `
         return iri
       }
 
+    function wordwrap( str, width=50, brk="\\l", cut=false ) {
+ 
+        brk = brk || 'n';
+        width = width || 75;
+        cut = cut || false;
+     
+        if (!str) { return str; }
+     
+        var regex = '.{1,' +width+ '}(\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\S+?(\s|$)');
+     
+        return str.match( RegExp(regex, 'g') ).join( brk );
+     
+    }
+
+
+  function wordWrap(str, maxWidth=50, newLineStr="\\l") {
+      var done = false; res = '';
+      while (str.length > maxWidth) {                 
+          found = false;
+          // Inserts new line at first whitespace of the line
+          for (i = maxWidth - 1; i >= 0; i--) {
+              if (testWhite(str.charAt(i))) {
+                  res = res + [str.slice(0, i), newLineStr].join('');
+                  str = str.slice(i + 1);
+                  found = true;
+                  break;
+              }
+          }
+          // Inserts new line at maxWidth position, the word is too long to wrap
+          if (!found) {
+              res += [str.slice(0, maxWidth), newLineStr].join('');
+              str = str.slice(maxWidth);
+          }
+  
+      }
+  
+      return res + str;
+  }
+
+  function testWhite(x) {
+    var white = new RegExp(/^\s$/);
+    return white.test(x.charAt(0));
+}
 
 
     function editorLang(lang){
@@ -348,30 +391,39 @@ return legend
 function createDot(selectedSubjects){
   let value1 = '';
   for ( let ss of selectedSubjects) {
-    value1 += '   "' + shrink(ss) +   '"  [URL="javascript:findTriplesForObject([\'' + ss  + '\'])" ];\n ';
+    if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(ss) +   '"  [URL="javascript:findTriplesForObject([\'' + ss  + '\'])" ];\n ';}
+    else {value1 += '   "' + shrink(ss) +   '" ;\n ';}
   let nn = graphStore.match(rdf.namedNode(ss)).toArray()
+  
   for(let g_quad of nn ) {
     if(g_quad.object.termType === "Literal") {
-      value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-      value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")  + '\'])" ];\n ';  
-     } else 
+      value1 += '  "' + shrink(ss) + '" -> "' + wordWrap(g_quad.object.value)  + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
+      value1 += '   "' + wordWrap(g_quad.object.value) + '"  [color="blue" ];\n '
+      if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + wordWrap(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")  + '\'])" ];\n ';  }
+     } 
+     else 
      if(g_quad.object.termType === "BlankNode") {
       value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
       value1 += '   "' + shrink(g_quad.object.value) + '"  [color="orange" ];\n '
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
-     } else
+      if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
+     } 
+     else
      if(document.querySelector("#type input").checked)
      {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
      else {
      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+     if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
     }
   }
     else
     {
       value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+      if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
      }
   }
   let nb = graphStore.match(rdf.blankNode(ss)).toArray()
@@ -380,21 +432,24 @@ function createDot(selectedSubjects){
      value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
      value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
      value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n '
-     value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+     if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';} 
     } else
     if(document.querySelector("#type input").checked)
     {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
     else {
       value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
       value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
-      value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+      if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';} 
     }
   }
 else  
     {
     value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
     value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
-    value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; 
+    if(document.querySelector("#subjects input").checked)
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
   }
      
   }
@@ -772,7 +827,9 @@ output.on('error', () => {
     document.querySelector("#prefix input").addEventListener("change", function() {
       createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
     });
-
+    document.querySelector("#subjects input").addEventListener("change", function() {
+      createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
+    });
     document.querySelector("#type input").addEventListener("change", function() {
       createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
     });
