@@ -409,26 +409,77 @@ function createLegend() {
   return legend
 }
 
+
+function isListNode(statements) {
+  let listPredicates = new Set([
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#first",
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest"
+  ]);
+  return statements.length === 2 && statements.every(quad =>
+    listPredicates.has(quad.predicate.value)
+  );
+}
+
+
+function renderList(graphStore, declared, head, statements, includeSubjects) {
+  let listMembers = [];
+  do {
+    let headNode = statements.find(quad => quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#first").object;
+    listMembers.push(headNode);
+    let nextNode = statements.find(quad => quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#rest").object;
+    if (nextNode === "http://www.w3.org/1999/02/22-rdf-syntax-ns#nil") {
+      statements = []
+    } else {
+      statements = graphStore.match(nextNode).toArray();
+    }
+  } while (statements.length)
+
+  [dotText, listRef] = declareTerm(declared, head, includeSubjects);
+  let memberRefs = [];
+  listMembers.forEach(member => {
+    [memberText, memberRef] = declareTerm(declared, member, includeSubjects);
+    dotText += memberText;
+    memberRefs.push(memberRef);
+  });
+
+  let attributes = [
+    'shape=record',
+    'label="'+Array(memberRefs.length).fill().map((_, i) => `<p${i}>`).join('|')+'"'
+  ];
+  dotText += '   "' + listRef + '" [' + attributes.join(',') + '];\n ';
+  dotText += memberRefs.map((member, i) => `   "${listRef}":p${i} -> "${member}" ; `).join('\n');
+
+  return [dotText, listMembers];
+}
+
 function createDot(selectedSubjects) {
-  let subjectsToAdd = selectedSubjects.map(expand);
+  let subjectsToAdd =
+    selectedSubjects.map(expand)
+                    .flatMap(subject => [rdf.namedNode(subject),
+                                         rdf.blankNode(subject)]);
+  let includeSubjects = document.querySelector("#subjects input").checked;
+  let excludeTypes = document.querySelector("#type input").checked;
+  let declared = new Map();
   let allStatements = [];
   let seen = new Set();
+  let rdfGraph = '';
   while (subjectsToAdd.length) {
     let ss = subjectsToAdd.shift();
     seen.add(ss);
-    let statements = [...graphStore.match(rdf.namedNode(ss)).toArray(),
-                      ...graphStore.match(rdf.blankNode(ss)).toArray()];
-    allStatements.push(...statements);
-    subjectsToAdd.push(...statements
-                            .map(s => s.object)
-                            .filter(term => term.termType === "BlankNode")
-                            .map(term => term.value)
-                            .filter(value => !seen.has(value)))
+    let statements = graphStore.match(ss).toArray();
+    if (isListNode(statements)) {
+      [text, listMembers] = renderList(graphStore, declared, ss, statements, includeSubjects);
+      rdfGraph += text;
+      subjectsToAdd.push(...listMembers.filter(term => term.termType === "BlankNode")
+                                       .filter(value => !seen.has(value)))
+    } else {
+      allStatements.push(...statements);
+      subjectsToAdd.push(...statements
+                              .map(s => s.object)
+                              .filter(term => term.termType === "BlankNode")
+                              .filter(value => !seen.has(value)))
+    }
   }
-  let includeSubjects = document.querySelector("#subjects input").checked;
-  let excludeTypes = document.querySelector("#type input").checked;
-  let rdfGraph = '';
-  let declared = new Map();
   for (let quad of allStatements) {
     let subjectRef, objectRef, text;
     [text, subjectRef] = declareTerm(declared, quad.subject, includeSubjects);
