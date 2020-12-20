@@ -1,7 +1,7 @@
 //const { RdfXmlParser } = require("../js/rdfjs/rdf-ext-1.0.0");
 
 //const { xmlScribe } = require("../js/rdfjs/rdf-ext-1.7.1");
-var debug = true;
+var debug = false;
 var beforeUnloadMessage = null;
 var startupRDF = `
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
@@ -103,6 +103,14 @@ function shrink(iri) {
     return iri.replace(new RegExp(`^${found[1]}`), `${found[0]}:`)
   }
   return iri
+}
+
+function expand(qname) {
+  const found = Array.from(Object.entries(myprefixes)).find(([prefix, ]) => qname.startsWith(`${prefix}:`))
+  if (found) {
+    return qname.replace(new RegExp(`^${found[0]}:`), `${found[1]}`)
+  }
+  return qname
 }
 
 function wordwrap(str, width = 50, brk = "\\l", cut = false) {
@@ -355,13 +363,16 @@ function addData(data) {
 
 function getSubjects(graphStore) {
 
-  let subjects = new Set();
-  graphStore.forEach((g_quad) => {
-    subjects.add(g_quad.subject.value)
-  });
-  if (debug) {
-    console.log("Subjects:  ", subjects)
-  }
+  let quads = Array.from(graphStore);
+  let blankObjects = new Set(
+    quads.map(quad => quad.object)
+         .filter(object => object.termType === "BlankNode")
+  );
+  let subjects = new Set(
+    quads.map(quad => quad.subject)
+         .filter(subject => !blankObjects.has(subject))
+         .map(subject => shrink(subject.value))
+  );
   subjectsList = Array.from(subjects);
   if (debug) {
     console.log(subjectsList)
@@ -381,11 +392,8 @@ function findTriplesForObject(objectNodeValue) {
   let nn = nn0.concat(graphStore.match(rdf.blankNode(onvs)).toArray())
 
   graphStore.forEach((g_quad) => {
-
     if (g_quad.object.value.toString() == onvs) {
-
-      subjectNodes.push(g_quad.subject.value)
-
+      subjectNodes.push(shrink(g_quad.subject.value))
     }
   });
   alert("Matching Subjects:\n" + subjectNodes.join('\r\n'))
@@ -401,89 +409,82 @@ function createLegend() {
   return legend
 }
 
-
 function createDot(selectedSubjects) {
-  let value1 = '';
-  for (let ss of selectedSubjects) {
-    if (document.querySelector("#subjects input").checked) {
-      value1 += '   "' + shrink(ss) + '"  [URL="javascript:findTriplesForObject([\'' + ss + '\'])" ];\n ';
-    } else {
-      value1 += '   "' + shrink(ss) + '" ;\n ';
-    }
-    let nn = graphStore.match(rdf.namedNode(ss)).toArray()
-
-    for (let g_quad of nn) {
-      if (g_quad.object.termType === "Literal") {
-        value1 += '  "' + shrink(ss) + '" -> "' + wordWrap(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-        value1 += '   "' + wordWrap(g_quad.object.value) + '"  [color="blue" ];\n '
-        if (document.querySelector("#subjects input").checked) {
-          value1 += '   "' + wordWrap(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-        }
-      } else
-      if (g_quad.object.termType === "BlankNode") {
-        value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-        value1 += '   "' + shrink(g_quad.object.value) + '"  [color="orange" ];\n '
-        if (document.querySelector("#subjects input").checked) {
-          value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-        }
-      } else
-      if (document.querySelector("#type input").checked) {
-        if (g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {} else {
-          value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-          if (document.querySelector("#subjects input").checked) {
-            value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-          }
-        }
-      } else {
-        value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-        if (document.querySelector("#subjects input").checked) {
-          value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-        }
-      }
-    }
-    let nb = graphStore.match(rdf.blankNode(ss)).toArray()
-    for (let g_quad of nb) {
-      if (g_quad.object.termType === "Literal") {
-        value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
-        value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
-        value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n '
-        if (document.querySelector("#subjects input").checked) {
-          value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-        }
-      } else
-      if (document.querySelector("#type input").checked) {
-        if (g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {} else {
-          value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
-          value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
-          if (document.querySelector("#subjects input").checked) {
-            value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-          }
-        }
-      } else {
-        value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
-        value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
-        if (document.querySelector("#subjects input").checked) {
-          value1 += '   "' + shrink(g_quad.object.value) + '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt, "&amp;") + '\'])" ];\n ';
-        }
-      }
-
+  let subjectsToAdd = selectedSubjects.map(expand);
+  let allStatements = [];
+  let seen = new Set();
+  while (subjectsToAdd.length) {
+    let ss = subjectsToAdd.shift();
+    seen.add(ss);
+    let statements = [...graphStore.match(rdf.namedNode(ss)).toArray(),
+                      ...graphStore.match(rdf.blankNode(ss)).toArray()];
+    allStatements.push(...statements);
+    subjectsToAdd.push(...statements
+                            .map(s => s.object)
+                            .filter(term => term.termType === "BlankNode")
+                            .map(term => term.value)
+                            .filter(value => !seen.has(value)))
+  }
+  let includeSubjects = document.querySelector("#subjects input").checked;
+  let excludeTypes = document.querySelector("#type input").checked;
+  let rdfGraph = '';
+  let declared = new Map();
+  for (let quad of allStatements) {
+    let subjectRef, objectRef, text;
+    [text, subjectRef] = declareTerm(declared, quad.subject, includeSubjects);
+    rdfGraph += text;
+    if (!(excludeTypes && quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
+      [text, objectRef] = declareTerm(declared, quad.object, includeSubjects);
+      rdfGraph += text;
+      rdfGraph += '  "' + subjectRef + '" -> "' + objectRef + '"  [label="' + shrink(quad.predicate.value) + '"];\n '
     }
   }
 
   if (debug) {
-    console.log("value1", value1)
+    console.log("rdfGraph", rdfGraph)
   }
+  let legend = '';
   if (document.querySelector("#prefix input").checked) {
-    dotText = 'digraph { node [shape="box", style="rounded"]; rankdir="LR"; ratio="auto";  subgraph RDF {' + value1 + '} ' + createLegend() + ' }';
-  } else {
-    dotText = 'digraph { node [shape="box", style="rounded"]; rankdir="LR"; ratio="auto";  subgraph RDF {' + value1 + '}  }';
+    legend = createLegend();
   }
+  dotText = `digraph {
+    node [shape="box", style="rounded"];
+    rankdir="LR"; ratio="auto";
+    subgraph RDF {
+      ${rdfGraph}
+    }
+    ${legend}
+  }`;
 
   if (debug) {
     console.log("dotText", dotText)
   }
-  value1 = '';
   updateGraph(dotText)
+}
+
+function declareTerm(declared, term, includeSubjects) {
+  if (declared.has(term)) {
+    return ['', declared[term]];
+  }
+  let declaration = '';
+  let ref = term.value, attributes = [];
+  if (term.termType === "Literal") {
+    ref = wordWrap(term.value);
+    attributes.push('color="blue"');
+  } else
+  if (term.termType === "BlankNode") {
+    attributes.push('color="orange"');
+  } else {
+    ref = shrink(term.value);
+  }
+  declared[term] = ref;
+
+  if (includeSubjects) {
+    attributes.push(`URL="javascript:findTriplesForObject(['${term.value}'])"`)
+  }
+  declaration = '   "' + ref + '" [' + attributes.join(',') + '];\n ';
+
+  return [declaration, ref];
 }
 
 
