@@ -2,31 +2,31 @@
 
 //const { xmlScribe } = require("../js/rdfjs/rdf-ext-1.7.1");
 
-var debug = false;
+var debug = true;
 var beforeUnloadMessage = null;
 var startupRDF = `
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 @prefix contact: <http://www.w3.org/2000/10/swap/pim/contact#>.
 @prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 @prefix dc:      <http://purl.org/dc/elements/1.1/#>.
-@prefix exterms: <http://www.example.org/terms/>.    
+@prefix exterms: <http://www.example.org/terms/>.
 
-<http://www.w3.org/People/EM/contact#me> 
+<http://www.w3.org/People/EM/contact#me>
     rdf:type contact:Person;
     contact:fullName "Eric Miller";
     contact:mailbox <mailto:em@w3.org>;
     contact:personalTitle "Dr." ;
     contact:eg <http://www.w3.org/TR/rdf-syntax-grammar> .
 
-<http://www.w3.org/TR/rdf-syntax-grammar> 
+<http://www.w3.org/TR/rdf-syntax-grammar>
     dc:title "RDF/XML Syntax Specification (Revised)";
     exterms:editor [
         exterms:fullName "Dave Beckett";
         exterms:homePage <http://purl.org/net/dajobe/>
-    ].  
-####### INSTRUCTIONS ###############################################      
+    ].
+####### INSTRUCTIONS ###############################################
 ## To view in the graph pane:
-## 1: click the "Go" button - this will populate the select box with the 
+## 1: click the "Go" button - this will populate the select box with the
 ##    identifiers of the subjects and the blank nodes in the Turtle
 ## 2: click on any subject or blank node identifier and wait a second or so
 
@@ -52,7 +52,7 @@ var startupRDF = `
 ## if a URL is connected to the editor with ?dot= then the content is brought into
 ## the editor - this is useful for bringing dot and turtle files into the editor
 ##
-## If the URL is connected with ?rdfa= then the document at the URL is parsed and the 
+## If the URL is connected with ?rdfa= then the document at the URL is parsed and the
 ## RDFa triples are extracted and added to the editor as ntriples.
 ##
 
@@ -81,8 +81,8 @@ var startupRDF = `
     var dotText = '';
     var myprefixes = {} ;
     //const element = document.querySelector('#subs');
-    //const choices = new Choices(element);    
-    
+    //const choices = new Choices(element);
+
     var beforeUnloadMessage = null;
 
     var patt = /&(?!(?:#[0-9]+|[a-z]+);)/gi  // Useed for matching ampersands that are not already part of anXML entity
@@ -107,23 +107,23 @@ var startupRDF = `
       }
 
     function wordwrap( str, width=50, brk="\\l", cut=false ) {
- 
+
         brk = brk || 'n';
         width = width || 75;
         cut = cut || false;
-     
+
         if (!str) { return str; }
-     
+
         var regex = '.{1,' +width+ '}(\s|$)' + (cut ? '|.{' +width+ '}|.+$' : '|\S+?(\s|$)');
-     
+
         return str.match( RegExp(regex, 'g') ).join( brk );
-     
+
     }
 
 
   function wordWrap(str, maxWidth=50, newLineStr="\\l") {
       var done = false; res = '';
-      while (str.length > maxWidth) {                 
+      while (str.length > maxWidth) {
           found = false;
           // Inserts new line at first whitespace of the line
           for (i = maxWidth - 1; i >= 0; i--) {
@@ -139,9 +139,9 @@ var startupRDF = `
               res += [str.slice(0, maxWidth), newLineStr].join('');
               str = str.slice(maxWidth);
           }
-  
+
       }
-  
+
       return res + str;
   }
 
@@ -156,10 +156,10 @@ var startupRDF = `
           case "turtle":
               editor.session.setMode("ace/mode/turtle");
               break;
-          case "xml": 
+          case "xml":
               editor.session.setMode("ace/mode/xml");
               break;
-          case "javascript": 
+          case "javascript":
               editor.session.setMode("ace/mode/javascript");
               break;
           case "dot":
@@ -172,10 +172,10 @@ var startupRDF = `
           case "cobalt":
               editor.setTheme("ace/theme/cobalt");
               break;
-          case "dawn": 
+          case "dawn":
           editor.setTheme("ace/theme/dawn");
               break;
-          case "eclipse": 
+          case "eclipse":
           editor.setTheme("ace/theme/eclipse");
               break;
           case "github":
@@ -186,7 +186,7 @@ var startupRDF = `
 
   /**************  RDFJS STUFF */
   function streamToString (stream) {
-    const content = [] 
+    const content = []
     stream.on('data', chunk => {
       content.push(chunk)
     })
@@ -215,23 +215,13 @@ var startupRDF = `
        if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
        if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
       });
-      
+
       output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)
       });
-      
-      
-      output.on('end', () => {
-      graphStore.forEach((quad) => {subjectSet.add(quad.subject.value)})
-      if(debug){console.log(subjectSet)}
-      if(debug){console.log([...subjectSet])}
-      
-      if(debug){console.log("Subjects:  ", subjectSet)}
-       subjectsList = Array.from(subjectSet);
-       if(debug){console.log(subjectsList)}
-       document.querySelector("#subjectsSel select").innerHTML=""
-       for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
-      });
-      
+
+
+      output.on('end', () => { getSubjects(graphStore) });
+
       output.on('error', () => {
         //
       });
@@ -240,16 +230,16 @@ var startupRDF = `
      const serializerNtriples = new SerializerNtriples()
      const inputStream = graphStore.toStream()
      const outputStream = serializerNtriples.import(inputStream)
-     
+
      outputStream.on('data', ntriples => {
        if(ntriples != "undefined"){
        result1 += ntriples.toString()
        }
      })
-     
+
      outputStream.on('end', () => {
       editor.setValue(result1)
-    })     
+    })
   }
 
   function convertTo(what){
@@ -276,7 +266,7 @@ var startupRDF = `
       //myParser = new ParserN3();
       myParser = "text/turtle"
   }
-  
+
   let output = formats.parsers.import(myParser, input)
   editorAvailable = false;
   switch(what){
@@ -314,13 +304,13 @@ var startupRDF = `
         stream.on('data', (data) => {
         result1 += data.toString()
         })
-  
+
         rdf.waitFor(stream).then(() => {
           editor.setValue('')
           editor.setValue(result1)
           editorAvailable = true;
         })
-        break;      
+        break;
     case "jsonld":
       result1 ='';
       stream = formats.serializers.import('application/ld+json', output);
@@ -340,7 +330,7 @@ var startupRDF = `
       editorAvailable = true;
   }
   editorAvailable = true;
-  return 
+  return
   }
 
 
@@ -349,7 +339,7 @@ var startupRDF = `
   }
 
 
-function getSubjects(){
+function getSubjects(graphStore) {
 
 let subjects = new Set();
   graphStore.forEach((g_quad) => {subjects.add(g_quad.subject.value)});
@@ -395,21 +385,21 @@ function createDot(selectedSubjects){
       {value1 += '   "' + shrink(ss) +   '"  [URL="javascript:findTriplesForObject([\'' + ss  + '\'])" ];\n ';}
     else {value1 += '   "' + shrink(ss) +   '" ;\n ';}
   let nn = graphStore.match(rdf.namedNode(ss)).toArray()
-  
+
   for(let g_quad of nn ) {
     if(g_quad.object.termType === "Literal") {
       value1 += '  "' + shrink(ss) + '" -> "' + wordWrap(g_quad.object.value)  + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
       value1 += '   "' + wordWrap(g_quad.object.value) + '"  [color="blue" ];\n '
       if(document.querySelector("#subjects input").checked)
       {value1 += '   "' + wordWrap(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")  + '\'])" ];\n ';  }
-     } 
-     else 
+     }
+     else
      if(g_quad.object.termType === "BlankNode") {
       value1 += '  "' + shrink(ss) + '" -> "' + g_quad.object.value + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n '
       value1 += '   "' + shrink(g_quad.object.value) + '"  [color="orange" ];\n '
       if(document.querySelector("#subjects input").checked)
       {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
-     } 
+     }
      else
      if(document.querySelector("#type input").checked)
      {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
@@ -433,7 +423,7 @@ function createDot(selectedSubjects){
      value1 += '   "' + shrink(g_quad.object.value) + '"  [color="blue" ];\n '
      value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n '
      if(document.querySelector("#subjects input").checked)
-      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';} 
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';}
     } else
     if(document.querySelector("#type input").checked)
     {if(g_quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") { }
@@ -441,17 +431,17 @@ function createDot(selectedSubjects){
       value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
       value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
       if(document.querySelector("#subjects input").checked)
-      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';} 
+      {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n ';}
     }
   }
-else  
+else
     {
     value1 += '  "' + shrink(ss) + '" -> "' + shrink(g_quad.object.value) + '"  [label="' + shrink(g_quad.predicate.value) + '"];\n ';
     value1 += '   "' + shrink(ss) + '"  [color="orange" ];\n ';
     if(document.querySelector("#subjects input").checked)
       {value1 += '   "' + shrink(g_quad.object.value) +   '"  [URL="javascript:findTriplesForObject([\'' + g_quad.object.value.replace(patt,"&amp;")   + '\'])" ];\n '; }
   }
-     
+
   }
 }
 
@@ -485,7 +475,7 @@ function handleprefixes(prefix, namespace) {
 
 function isXML(xmlStr){
     var parseXml;
-  
+
     if (typeof window.DOMParser != "undefined") {
       parseXml = function(xmlStr) {
         return (new window.DOMParser()).parseFromString(xmlStr, "text/xml");
@@ -500,7 +490,7 @@ function isXML(xmlStr){
     } else {
       return false;
     }
-  
+
     try {
       var myXMLDoc = parseXml(xmlStr);
       if(myXMLDoc.getElementsByTagName("parsererror").length > 0){
@@ -510,7 +500,7 @@ function isXML(xmlStr){
         alert(e)
       return false;
     }
-    return true;      
+    return true;
   }
 
 
@@ -523,8 +513,8 @@ graphStore =  new rdfdi();
 let inputText = editor.getValue()
 if(inputText.trim().toLowerCase().startsWith('digraph')) {
     document.querySelector("#lang select").value = "dot";
-    dotText=inputText; 
-    updateGraph(); 
+    dotText=inputText;
+    updateGraph();
     return
 }
 //else if(inputText.trim().startsWith('<') && document.querySelector("#lang select").value != "turtle" && document.querySelector("#lang select").value != "javascript") {
@@ -547,26 +537,16 @@ if(inputText.trim().toLowerCase().startsWith('digraph')) {
     if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
   graphStore.add(quad)
   subjectSet.add(quad.subject.value)
-    
+
      if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
      if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
   });
-  
+
   output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)
   });
 
-  output.on('end', () => {
-  //for(let _q of graphStore._quads){subjectSet.add(_q.subject.value);}
-  graphStore.forEach((quad) => {subjectSet.add(quad.subject.value)})
-  if(debug){console.log(subjectSet)}
-  if(debug){console.log([...subjectSet])}
-    if(debug){console.log("Subjects:  ", subjectSet)}
-     subjectsList = Array.from(subjectSet);
-     if(debug){console.log(subjectsList)}
-     document.querySelector("#subjectsSel select").innerHTML=""
-     for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
-  });
-  
+  output.on('end', () => { getSubjects(graphStore) });
+
   output.on('error', () => {
     document.querySelector("#error").innerHTML="#1: There was an error in parsing but no further detail.";
   });
@@ -585,7 +565,7 @@ else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') ) {
   });
  //JsonLdParser()
   //const myParser = new rdfparserjsonld();
- 
+
   let output = formats.parsers.import('application/ld+json', input)
 
   subjectSet = new Set();
@@ -595,26 +575,16 @@ else if(inputText.trim().startsWith('{') || inputText.trim().startsWith('[') ) {
     if(quad.object.termType === "BlankNode"  && count===false) {quad.object.constructor.nextId = 0 ; count=true;}
   graphStore.add(quad)
   subjectSet.add(quad.subject.value)
-    
+
      if(debug){console.log("Quad: ", `quad: ${quad.subject.value} - ${quad.predicate.value} - ${quad.object.value}`)}
      if(debug){console.log("Canonical:  ", graphStore.toCanonical())}
   });
-  
+
   output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)
   });
 
-  output.on('end', () => {
-  //for(let _q of graphStore._quads){subjectSet.add(_q.subject.value);}
-  graphStore.forEach((quad) => {subjectSet.add(quad.subject.value)})
-  if(debug){console.log(subjectSet)}
-  if(debug){console.log([...subjectSet])}
-    if(debug){console.log("Subjects:  ", subjectSet)}
-     subjectsList = Array.from(subjectSet);
-     if(debug){console.log(subjectsList)}
-     document.querySelector("#subjectsSel select").innerHTML=""
-     for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
-  });
-  
+  output.on('end', () => { getSubjects(graphStore) });
+
   output.on('error', () => {
     document.querySelector("#error").innerHTML="#1: There was an error in parsing but no further detail.";
   });
@@ -649,17 +619,7 @@ output.on('prefix', (prefix, namespace) => {handleprefixes(prefix, namespace)
 });
 
 
-output.on('end', () => {
-graphStore.forEach((quad) => {subjectSet.add(quad.subject.value)})
-if(debug){console.log(subjectSet)}
-if(debug){console.log([...subjectSet])}
-
-if(debug){console.log("Subjects:  ", subjectSet)}
- subjectsList = Array.from(subjectSet);
- if(debug){console.log(subjectsList)}
- document.querySelector("#subjectsSel select").innerHTML=""
- for(let i of subjectsList){document.querySelector("#subjectsSel select").add(new Option(i))}
-});
+output.on('end', () => { getSubjects(graphStore) });
 
 output.on('error', () => {
   document.querySelector("#error").innerHTML="#2: There was an error in parsing but no further detail.";
