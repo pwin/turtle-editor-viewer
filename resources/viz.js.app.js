@@ -75,6 +75,7 @@ editor.setAutoScrollEditorIntoView(true);
 editor.resize(true);
 editor.renderer.updateFull();
 editor.setWrapBehavioursEnabled(true);
+editor.$blockScrolling = Infinity;
 */
 var editorAvailable = true;
 
