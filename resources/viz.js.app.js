@@ -75,7 +75,6 @@ editor.setAutoScrollEditorIntoView(true);
 editor.resize(true);
 editor.renderer.updateFull();
 editor.setWrapBehavioursEnabled(true);
-editor.$blockScrolling = Infinity;
 */
 var editorAvailable = true;
 
@@ -104,7 +103,7 @@ var beforeUnloadMessage = null;
 var patt = /&(?!(?:#[0-9]+|[a-z]+);)/gi // Useed for matching ampersands that are not already part of anXML entity
 
 var resizeEvent = new Event("paneresize");
-Split(['#editor', '#graph'], {
+Split(['#editor-container', '#graph'], {
   sizes: [25, 75],
   onDragEnd: function() {
     var svgOutput = document.getElementById("svg_output");
@@ -394,9 +393,10 @@ function getSubjects(graphStore) {
   if (debug) {
     console.log(subjectsList)
   }
-  document.querySelector("#subjectsSel select").innerHTML = ""
+  let selectList = document.querySelector("#subjectsSel select");
+  selectList.innerHTML = ""
   for (let i of subjectsList) {
-    document.querySelector("#subjectsSel select").add(new Option(i))
+    selectList.add(new Option(i))
   }
 
 }
@@ -504,7 +504,7 @@ function createDot(selectedSubjects) {
     if (!(excludeTypes && quad.predicate.value === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
       [text, objectRef] = declareTerm(declared, quad.object, includeSubjects);
       rdfGraph += text;
-      rdfGraph += '  "' + subjectRef + '" -> "' + objectRef + '"  [label="' + shrink(quad.predicate.value) + '"];\n '
+      rdfGraph += '  "' + escapeDot(subjectRef) + '" -> "' + escapeDot(objectRef) + '"  [label="' + shrink(quad.predicate.value) + '"];\n '
     }
   }
 
@@ -530,6 +530,10 @@ function createDot(selectedSubjects) {
   updateGraph(dotText)
 }
 
+function escapeDot(s) {
+  return s.replace(/"/g, '\\"')
+}
+
 function declareTerm(declared, term, includeSubjects) {
   if (declared.has(term)) {
     return ['', declared[term]];
@@ -550,7 +554,7 @@ function declareTerm(declared, term, includeSubjects) {
   if (includeSubjects) {
     attributes.push(`URL="javascript:findTriplesForObject(['${term.value}'])"`)
   }
-  declaration = '   "' + ref + '" [' + attributes.join(',') + '];\n ';
+  declaration = '   "' + escapeDot(ref) + '" [' + attributes.join(',') + '];\n ';
 
   return [declaration, ref];
 }
@@ -876,9 +880,11 @@ function updateOutput() {
     svg.addEventListener('paneresize', function(e) {
       panZoom.resize();
     }, false);
+
     window.addEventListener('resize', function(e) {
       panZoom.resize();
     });
+    //svg.addEventListener('mouseup', function(e) { console.log('up ' + e.target)})
   } else if (document.querySelector("#format select").value == "png") {
     var image = Viz.svgXmlToPngImageElement(result);
     graph.appendChild(image);
