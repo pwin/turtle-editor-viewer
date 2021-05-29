@@ -11,7 +11,6 @@
         <script type="text/javascript" src="js/svg-pan-zoom/svg-pan-zoom.min.js"></script>
         <script type="text/javascript" src="js/viz.js/viz.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
-        <script type="text/javascript" src="js/js/getURLParams.js"></script>
         <script src="js/rdfjs/rdf-ext-1.7.1.js"    type="text/javascript" charset="utf-8"></script>    
     </head>
 <body>
@@ -23,9 +22,9 @@
             <div id="graph" class="split">
               <div id="options">
                 <div>
-              <input type="file" id="openbtn" onchange="openCode(this.files)" value="Open">
+              Editor Content:<input type="file" id="openbtn" onchange="openCode(this.files)" onclick="this.value=null;"  accept="*/*" value="Open">
               <input type="button" id="savebtn" value="Download File">
-              </div>
+            </div>
                 <label id="lang">
                   Lang:
                   <select onchange="editorLang(this.value)">
@@ -198,7 +197,12 @@ function openCode(files) {
                     editor.session.setValue(reader.result)
                 }  
                 reader.readAsText(file) 
+                
             }
+
+
+
+
 
 document.getElementById("savebtn").addEventListener("click", ()=>{
     var file = new File([editor.getValue().trim()], "myFile.ttl", {type: "text/plain;charset=utf-8"});

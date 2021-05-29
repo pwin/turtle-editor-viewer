@@ -21,7 +21,6 @@
       display: -webkit-flex;
       flex: 1 1 auto;
       -webkit-flex: 1 1 auto;
-
     }
 
     #graph {
@@ -36,11 +35,6 @@
       -webkit-flex: 0 0 auto;
     }
 
-    #options1 {
-      flex: 0 0 auto;
-      -webkit-flex: 0 0 auto;
-    }
-
     #output {
       flex: 1 1 auto;
       -webkit-flex: 1 1 auto;
@@ -50,7 +44,7 @@
 
 
     #editor {
-      border-right: 1px solid #ccc;    top: 0;
+      border-right: 1px solid #ccc;
     }
 
     #header {
@@ -125,7 +119,7 @@
     }
 
     .gutter {
-      background-color: #444eee;
+      background-color: #eee;
       background-repeat: no-repeat;
       background-position: 50%;
     }
@@ -148,19 +142,3 @@
       height: 100%;
       float: left;
     }
-
-
-    #subs   {
-      width: 5%;
-      resize: both;
-      overflow: auto;
-  }
-
-  input[type=button]{
-    background-color: gainsboro;
-    border: none;
-    color: black;
-    height:30px;
-    width:95px;
-    margin: 5px;
-  }
