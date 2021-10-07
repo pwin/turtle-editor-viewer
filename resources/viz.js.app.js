@@ -59,7 +59,7 @@ var startupRDF = `
 var editor = ace.edit("editor");
 editor.setOptions({
   maxLines: Infinity,  // this is going to be very slow on large documents
-  useWrapMode: true,   // wrap text to view
+  wrap: true,   // wrap text to view
   indentedSoftWrap: false, 
   behavioursEnabled: true, // enable autopairing of brackets and tags
   showLineNumbers: true, // show the gutter
@@ -67,6 +67,7 @@ editor.setOptions({
   theme: "ace/theme/cobalt",
   resize: true
 });
+window.dispatchEvent(new Event(editor.resize(true)));
 editor.setValue(startupRDF);
 /*editor.getSession().setMode("ace/mode/dot");
 editor.setTheme("ace/theme/cobalt");
