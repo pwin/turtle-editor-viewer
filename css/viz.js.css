@@ -21,6 +21,7 @@
       display: -webkit-flex;
       flex: 1 1 auto;
       -webkit-flex: 1 1 auto;
+
     }
 
     #graph {
@@ -49,7 +50,7 @@
 
 
     #editor {
-      border-right: 1px solid #ccc;
+      border-right: 1px solid #ccc;    top: 0;
     }
 
     #header {
