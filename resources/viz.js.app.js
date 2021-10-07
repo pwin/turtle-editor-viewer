@@ -63,7 +63,7 @@ editor.setOptions({
   indentedSoftWrap: false, 
   behavioursEnabled: true, // enable autopairing of brackets and tags
   showLineNumbers: true, // show the gutter
-  mode: "ace/mode/dot",
+  mode: "ace/mode/turtle",
   theme: "ace/theme/cobalt",
   resize: true
 });
