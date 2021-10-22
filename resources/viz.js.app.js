@@ -59,7 +59,7 @@ var startupRDF = `
 var editor = ace.edit("editor");
 editor.setOptions({
   maxLines: Infinity,  // this is going to be very slow on large documents
-  wrap: true,   // wrap text to view
+  wrap: false,   // wrap text to view
   indentedSoftWrap: false, 
   behavioursEnabled: true, // enable autopairing of brackets and tags
   showLineNumbers: true, // show the gutter
@@ -945,3 +945,44 @@ document.querySelector("#type input").addEventListener("change", function() {
   createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
 });
 updateGraph();
+
+function showFacts(){
+  var w = window.open('', '', 'width=1020,height=800,resizeable,scrollbars');
+  showFacts1(w)
+  w.document.close(); // needed for chrome and safari
+}
+
+
+async function showFacts1(w){
+    // Store to hold explicitly loaded triples
+    const explicit = new rdfdi();
+    // Store to hold implicitly loaded triples
+    const implicit = new rdfdi();  
+
+    console.log(typeof explicit)
+    console.log(typeof implicit)
+
+
+    const { additions, deletions } = await hylarCore.incremental(hylarCore.quadsToFacts(graphStore.toArray()), [], [], [], hylarCore.owl2rl)
+    
+    if(additions) {implicit.add(hylarCore.factsToQuads(additions).implicit);}
+    //if(deletions) {implicit.remove(hylarCore.factsToQuads(deletions).implicit);}
+  
+    if(additions) {explicit.add(hylarCore.factsToQuads(additions).explicit);}
+    //if(deletions) {explicit.remove(hylarCore.factsToQuads(deletions).explicit);}
+
+//var w = window.open('', '', 'width=1020,height=800,resizeable,scrollbars');
+w.document.write('<h3>Explicit Triples</h3>');
+w.document.write('<textarea cols="140" rows="20">');
+    explicit.toArray().forEach(x => x.forEach(y => logger(y, w)));
+    w.document.write('</textarea>');
+    w.document.write('<h3>Implicit Triples</h3>');
+    w.document.write('<textarea cols="140" rows="20">');    
+   implicit.toArray().forEach(x => x.forEach(y => logger(y, w)));
+   w.document.write('</textarea>');
+  
+}
+
+function logger(x, w){
+  w.document.write(x.subject.value, "  ", x.predicate.value, "  ",x.object.value, "\n")
+}
