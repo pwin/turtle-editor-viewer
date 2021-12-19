@@ -24,8 +24,8 @@
             </div>
           </div>
           <div id="graph" class="split">
-              <div id="options">
-                <div>
+            <div id="options">
+              <div>
               <input type="file" id="openbtn" onchange="openCode(this.files)" value="Open">
               <input type="button" id="savebtn" value="Download File">
               </div>
@@ -57,10 +57,15 @@
                      <button onclick="go()">Go</button>
                     <!-- button onclick="getRDF()">Get RDF</button -->
                     <!-- button onclick="getSubjects()">Subjects</button -->
-                    </td></tr><tr><td>
+                    </td>
+                    <td rowspan="3">
+                      <div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText" rows="10" style="margin: 0px; width: 323px; height: 98px;">select * {?s ?p ?o}</textarea><br/><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div>
+                    </td>
+                  </tr>
+                    <tr><td>
                   <label id="subjectsSel">
                       Subjects:
-                      <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))">
+                      <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))" style="margin: 0px; height: 86px; width: 403px;">
                          
                       </select>
                   </label>
@@ -88,7 +93,8 @@
                         </label>
                         <label id="raw">
                             <input type="checkbox"/>raw</label>
-                        </td></tr><tr><td>
+                        </td></tr>
+                        <tr><td>
                         <label id="url">URL:
                         <input id="urlVal" value="https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/DCAT_v2_summary.dot"></input>
                       </label>
@@ -100,10 +106,8 @@
                         <button onClick="showFacts()">Show Facts</button>
                         <a href="https://github.com/pwin/turtle-editor-viewer" target="_repo">[repo]</a>
                         <a href="/">[HOME]</a>
-                        </td>
-                      <td>
-                        <div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div>
-                      </td></tr></table> 
+                        </td></tr>
+                      </table> 
                     </div>
                     <!--div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div -->
                     <div id="output"/>
