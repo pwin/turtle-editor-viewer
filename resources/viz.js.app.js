@@ -999,13 +999,32 @@ else
 {
   const myEngine = Comunica.newEngine();
   const config = { sources: [queryStore] };
-  const { bindingsStream } = await myEngine.query(sparql, config);
-  //const { data } = await myEngine.resultToString(bindingsStream, 'application/sparql-results+json');
-  //data.on('data', (d) => console.log(d));
-  //data.on('end', () => console.log('Done!')); 
-  bindingsStream.on('data', (data) => console.log(data.toObject()));
+  const resultz = await myEngine.query(sparql, config);
+
+if (sparql.toLowerCase().includes('select ')){
+    resultz.bindingsStream.on('data', (binding) => {
+    console.log(binding.get('?s').value + "  " + binding.get('?s').termType + "  " + binding.get('?p').value + "  " + binding.get('?o').value);
+});
   bindingsStream.on('end', () => console.log('Done!'));
- 
-  alert('The results are printed in the console log');
+  bindingsStream.on('error', (error) => { console.error(error); });
+}
+else if (sparql.toLowerCase().includes('describe ') || sparql.toLowerCase().includes('construct ')) {
+  resultz.quadStream.on('data', (quad) => {
+    console.log(quad.subject.value);
+    console.log(quad.predicate.value);
+    console.log(quad.object.value);
+    console.log(quad.graph.value);
+});
+}
+else if (sparql.toLowerCase().includes('ask ')) {
+  const hasMatches = await resultz.booleanResult;
+  console.log(hasMatches);
+}
+else
+{
+  alert("there was some error in the query") ; 
+  return
+}
+alert('The results are printed in the console log');
 }
 }
