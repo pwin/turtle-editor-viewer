@@ -11,7 +11,9 @@
         <script type="text/javascript" src="js/svg-pan-zoom/svg-pan-zoom.min.js"></script>
         <script type="text/javascript" src="js/viz.js/viz.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
-        <script src="js/rdfjs/rdf-ext-1.7.5.js"    type="text/javascript" charset="utf-8"></script>    
+        <script src="js/rdfjs/rdf-ext-1.9.0.js"    type="text/javascript" charset="utf-8"></script>
+        <!-- script src="http://rdf.js.org/comunica-browser/versions/1/packages/actor-init-sparql/comunica-browser.js"    type="text/javascript" charset="utf-8"></script --> 
+        <script src="https://unpkg.com/n3/browser/n3.min.js"></script>    
     </head>
 <body>
       <div id="app">
@@ -98,8 +100,12 @@
                         <button onClick="showFacts()">Show Facts</button>
                         <a href="https://github.com/pwin/turtle-editor-viewer" target="_repo">[repo]</a>
                         <a href="/">[HOME]</a>
-                        </td></tr></table> 
+                        </td>
+                      <td>
+                        <div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div>
+                      </td></tr></table> 
                     </div>
+                    <!--div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div -->
                     <div id="output"/>
                   <div id="error"/>
                </div>

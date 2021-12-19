@@ -86,8 +86,9 @@ var stream;
 var result1;
 var prefixes;
 
-//var graphStore =  new rdf.dataset();
-var graphStore = new rdfdi();
+
+var graphStore =  rdf.dataset();
+//var graphStore = new rdfdi();
 //var parserN3 = new N3Parser();
 var parserN3 //= new N3Parser();
 //var rdfParser = new RdfXmlParser.RdfXmlParser();
@@ -614,8 +615,8 @@ var go = function() {
   if (debug) {
     console.log("go")
   }
-  //graphStore =  new rdf.dataset();
-  graphStore = new rdfdi();
+  graphStore =  rdf.dataset();
+  //graphStore = new rdfdi();
   let inputText = editor.getValue()
   if (inputText.trim().toLowerCase().startsWith('digraph')) {
     document.querySelector("#lang select").value = "dot";
@@ -955,9 +956,11 @@ function showFacts(){
 
 async function showFacts1(w){
     // Store to hold explicitly loaded triples
-    const explicit = new rdfdi();
+    //const explicit = new rdfdi();
+    const explicit = rdf.dataset();
     // Store to hold implicitly loaded triples
-    const implicit = new rdfdi();  
+    //const implicit = new rdfdi();  
+    const implicit = rdf.dataset();
 
     console.log(typeof explicit)
     console.log(typeof implicit)
@@ -985,4 +988,24 @@ w.document.write('<textarea cols="140" rows="20">');
 
 function logger(x, w){
   w.document.write(x.subject.value, "  ", x.predicate.value, "  ",x.object.value, "\n")
+}
+
+
+async function sparqlQuery(sparql) {
+var queryStore = new N3.Store();
+queryStore.addQuads(graphStore.toArray());
+if (queryStore.length == 0) {alert("There was no data stored to query."); return}
+else
+{
+  const myEngine = Comunica.newEngine();
+  const config = { sources: [queryStore] };
+  const { bindingsStream } = await myEngine.query(sparql, config);
+  //const { data } = await myEngine.resultToString(bindingsStream, 'application/sparql-results+json');
+  //data.on('data', (d) => console.log(d));
+  //data.on('end', () => console.log('Done!')); 
+  bindingsStream.on('data', (data) => console.log(data.toObject()));
+  bindingsStream.on('end', () => console.log('Done!'));
+ 
+  alert('The results are printed in the console log');
+}
 }
