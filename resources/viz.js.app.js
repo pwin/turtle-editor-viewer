@@ -990,9 +990,19 @@ function logger(x, w){
   w.document.write(x.subject.value, "  ", x.predicate.value, "  ",x.object.value, "\n")
 }
 
+function printToScreen(myJSONString) {
+  console.log(myJSONString)
+  myJSON = JSON.parse(myJSONString)
+  var config = {
+    "selector": "#output"
+  }
+  d3sparql.htmltable(myJSON, config)
+}
+
 
 async function sparqlQuery(sparql) {
 var queryStore = new N3.Store();
+var myJSON = '' ;
 queryStore.addQuads(graphStore.toArray());
 if (queryStore.length == 0) {alert("There was no data stored to query."); return}
 else
@@ -1003,7 +1013,9 @@ else
 
 if (sparql.toLowerCase().includes('select ')){
       const { data } = await myEngine.resultToString(resultz, 'application/sparql-results+json');
-      data.on('data', (d) => console.log(d.toString()));
+      data.on('data', (d) => (myJSON += d));
+      data.on('end', () => printToScreen(myJSON));
+      data.on('error', () => alert('There was an error in outputting results of the select query.'));
 }
 else if (sparql.toLowerCase().includes('describe ') || sparql.toLowerCase().includes('construct ')) {
   resultz.quadStream.on('data', (quad) => {
