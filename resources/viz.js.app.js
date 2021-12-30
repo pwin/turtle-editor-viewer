@@ -1002,11 +1002,8 @@ else
   const resultz = await myEngine.query(sparql, config);
 
 if (sparql.toLowerCase().includes('select ')){
-    resultz.bindingsStream.on('data', (binding) => {
-    console.log(binding.get('?s').value + "  " + binding.get('?s').termType + "  " + binding.get('?p').value + "  " + binding.get('?o').value);
-});
-  bindingsStream.on('end', () => console.log('Done!'));
-  bindingsStream.on('error', (error) => { console.error(error); });
+      const { data } = await myEngine.resultToString(resultz, 'application/sparql-results+json');
+      data.on('data', (d) => console.log(d.toString()));
 }
 else if (sparql.toLowerCase().includes('describe ') || sparql.toLowerCase().includes('construct ')) {
   resultz.quadStream.on('data', (quad) => {
