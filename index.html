@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
     <head>
         <title>Dot Viewer</title>
@@ -5,16 +6,16 @@
         <link rel="stylesheet" type="text/css" href="css/viz.js.css"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
         <!-- script type="text/javascript" src="js/ace/ace.js"></script -->
-        <script src="js/ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" src="js/ace-builds/src-min-noconflict/ace.js" charset="utf-8"></script>
         <script type="text/javascript" src="js/Split.js/split.min.js"></script>
         <script type="text/javascript" src="js/fabric.js/fabric.min.js"></script>
         <script type="text/javascript" src="js/svg-pan-zoom/svg-pan-zoom.min.js"></script>
         <script type="text/javascript" src="js/viz.js/viz.js"></script>
         <script type="text/javascript" src="js/js/getURLParams.js"></script>
-        <script src="js/rdfjs/rdf-ext-1.9.0.js"    type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" src="js/rdfjs/rdf-ext-1.9.0.js"  charset="utf-8"></script>
         <!-- script src="http://rdf.js.org/comunica-browser/versions/1/packages/actor-init-sparql/comunica-browser.js"    type="text/javascript" charset="utf-8"></script --> 
-        <script src="https://unpkg.com/n3/browser/n3.min.js"></script> 
-        <script type="text/javascript" src="https://d3js.org/d3.v7.min.js"></script> 
+        <script type="text/javascript" src="js/n3/n3.min.js"></script> 
+        <script type="text/javascript" src="js/d3sparql/d3.v7.min.js"></script> 
         <script type="text/javascript" src="js/d3sparql/d3sparql.js"></script>   
     </head>
 <body>
@@ -61,7 +62,10 @@
                     <!-- button onclick="getSubjects()">Subjects</button -->
                     </td>
                     <td rowspan="3">
-                      <div id="sparqlDiv"><div>SPARQL Pane (results in console)</div></div><textarea id="sparqlText" rows="10" style="margin: 0px; width: 323px; height: 98px;">select * {?s ?p ?o}</textarea><br/><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div>
+                      <div id="sparqlDiv"><div>SPARQL Pane (results in console)</div></div><textarea id="sparqlText" rows="10" style="margin: 0px; width: 323px; height: 98px;">select * {?s ?p ?o}</textarea><br/>
+                      <button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button>
+                      <button onclick="clearSparqlPane()">Clear Results</button>
+                    </div>
                     </td>
                   </tr>
                     <tr><td>
@@ -109,13 +113,16 @@
                         <a href="https://github.com/pwin/turtle-editor-viewer" target="_repo">[repo]</a>
                         <a href="/">[HOME]</a>
                         </td></tr>
-                      </table> 
+                      </table>
                     </div>
+                    
                     <!--div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div -->
-                    <div id="output" style="overflow: auto;"/>
-                  <div id="error"/>
+                    
+                    <div id="output"/>
+                    <div id="error"/>
                </div>
             </div>
+            <div id="outputsparql" class="split" style="overflow: scroll;"/>
          </div>
       </div>
       <script type="text/javascript" src="resources/viz.js.app.js"></script>
@@ -222,6 +229,10 @@ document.getElementById("savebtn").addEventListener("click", ()=>{
     var file = new File([editor.getValue().trim()], "myFile.ttl", {type: "text/plain;charset=utf-8"});
     saveAs(file);
 })
+
+function clearSparqlPane() {
+  document.getElementById('outputsparql').outerHTML = "<div id='outputsparql' class='split'/>"
+}
 </script>
 </body>
 </html>

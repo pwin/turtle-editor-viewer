@@ -994,7 +994,7 @@ function printToScreen(myJSONString) {
   console.log(myJSONString)
   myJSON = JSON.parse(myJSONString)
   var config = {
-    "selector": "#output"
+    "selector": "#outputsparql"
   }
   d3sparql.htmltable(myJSON, config)
 }
