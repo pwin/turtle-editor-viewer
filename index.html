@@ -63,6 +63,7 @@
                     </td>
                     <td rowspan="3">
                       <div id="sparqlDiv"><div>SPARQL Pane (results in console)</div></div><textarea id="sparqlText" rows="10" style="margin: 0px; width: 323px; height: 98px;">select * {?s ?p ?o}</textarea><br/>
+                      <button onclick="document.getElementById('sparqlText').value = createSPARQLprefixes()">Add Prefixes</button>
                       <button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button>
                       <button onclick="clearSparqlPane()">Clear Results</button>
                     </div>
@@ -125,7 +126,7 @@
             <div id="outputsparql" class="split" style="overflow: scroll;"/>
          </div>
       </div>
-      <script type="text/javascript" src="resources/viz.js.app.js"></script>
+      <script type="text/javascript" src="js/resources/viz.js.app.js"></script>
       <script>
       // Create the XHR object.
 function createCORSRequest(method, url) {
