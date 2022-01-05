@@ -1040,6 +1040,6 @@ else
   alert("there was some error in the query") ; 
   return
 }
-alert('The results are printed in the console log');
+//alert('The results are printed in the console log');
 }
 }
