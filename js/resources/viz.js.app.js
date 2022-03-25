@@ -395,7 +395,7 @@ function getSubjects(graphStore) {
   if (debug) {
     console.log(subjectsList)
   }
-  let selectList = document.querySelector("#subjectsSel select");
+  let selectList = document.querySelector("#subs");
   selectList.innerHTML = ""
   for (let i of subjectsList) {
     selectList.add(new Option(i))
@@ -1034,6 +1034,7 @@ else if (sparql.toLowerCase().includes('describe ') || sparql.toLowerCase().incl
 else if (sparql.toLowerCase().includes('ask ')) {
   const hasMatches = await resultz.booleanResult;
   console.log(hasMatches);
+  alert(hasMatches)
 }
 else
 {
