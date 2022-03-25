@@ -57,7 +57,7 @@
                         <input type="checkbox" />omit rdf:type</label>
                         <label id="subjects">
                           <input type="checkbox" />subjects</label>
-                     <button onclick="go()">Go</button>
+                     <!-- button onclick="go()">Go</button -->
                     <!-- button onclick="getRDF()">Get RDF</button -->
                     <!-- button onclick="getSubjects()">Subjects</button -->
                     </td>
@@ -70,12 +70,18 @@
                     </td>
                   </tr>
                     <tr><td>
+					<table><tr><td>
                   <label id="subjectsSel">
-                      Subjects:
-                      <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))" style="margin: 0px; height: 86px; width: 403px;">
-                         
-                      </select>
+				  Subjects:<br/>
+				  <button onclick="go()">Get All</button><br/>
+					Select to draw
                   </label>
+				  </td><td>
+				  <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))" style="margin: 0px; height: 86px; width: 403px;">   
+                      </select>
+					  </td>
+					  </tr>
+					  </table>
                   <label id="engine">
                      Viz:
                      <select>
