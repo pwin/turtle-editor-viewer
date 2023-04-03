@@ -985,17 +985,34 @@ async function showFacts1(w){
 //var w = window.open('', '', 'width=1020,height=800,resizeable,scrollbars');
 w.document.write('<h3>Explicit Triples</h3>');
 w.document.write('<textarea cols="140" rows="20">');
-    explicit.toArray().forEach(x => x.forEach(y => logger(y, w)));
+    explicit.toArray().forEach(x => x.forEach(y => logger_triples(y, w)));
     w.document.write('</textarea>');
     w.document.write('<h3>Implicit Triples</h3>');
     w.document.write('<textarea cols="140" rows="20">');    
-   implicit.toArray().forEach(x => x.forEach(y => logger(y, w)));
+   implicit.toArray().forEach(x => x.forEach(y => logger_triples(y, w)));
    w.document.write('</textarea>');
   
 }
 
 function logger(x, w){
   w.document.write(x.subject.value, "  ", x.predicate.value, "  ",x.object.value, "\n")
+}
+
+function logger_triples(x, w){
+  w.document.write(make_triples(x))
+}
+
+function make_triples(x) {
+  var retVal ;
+  if (x.object.termType != "Literal")
+  {
+  retVal = `<${x.subject.value}>  <${x.predicate.value}>  <${x.object.value}>  .\n`
+  }
+  else
+  {
+    retVal = `<${x.subject.value}>  <${x.predicate.value}>  \"${x.object.value}\"  .\n`
+  }
+  return retVal
 }
 
 function printToScreen(myJSONString) {
