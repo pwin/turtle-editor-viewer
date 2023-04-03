@@ -621,6 +621,7 @@ var go = function() {
   if (debug) {
     console.log("go")
   }
+  myprefixes = {};
   graphStore =  rdf.dataset();
   //graphStore = new rdfdi();
   let inputText = editor.getValue()
@@ -882,7 +883,8 @@ function updateOutput() {
       controlIconsEnabled: true,
       fit: true,
       center: true,
-      minZoom: 0.1
+      minZoom: 0.01,
+      maxZoom: 500
     });
 
     svg.addEventListener('paneresize', function(e) {
