@@ -58,6 +58,15 @@
                         <input type="checkbox" />omit rdf:type</label>
                         <label id="subjects">
                           <input type="checkbox" />subjects</label>
+                     <label id="dot_layout_label">
+                     Dot Layout Direction:
+                     <select id="dot_layout" onchange="dotLayout(this.value)">
+                     <option selected="selected">LR</option>
+                     <option>RL</option>
+                     <option>TB</option>
+                     <option>BT</option>
+                     </select>
+                     </label>
                      <!-- button onclick="go()">Go</button -->
                     <!-- button onclick="getRDF()">Get RDF</button -->
                     <!-- button onclick="getSubjects()">Subjects</button -->
