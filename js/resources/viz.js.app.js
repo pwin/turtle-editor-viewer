@@ -56,6 +56,7 @@ var startupRDF = `
 ##
 
     `
+var dot_rankdir = "LR";
 var editor = ace.edit("editor");
 editor.setOptions({
   maxLines: Infinity,  // this is going to be very slow on large documents
@@ -193,6 +194,11 @@ function editorLang(lang) {
     case "dot":
       editor.session.setMode("ace/mode/dot");
   }
+};
+
+function dotLayout(rankdir) {
+  // dot_rankdir = document.querySelector("#dot_layout").value;
+  dot_rankdir = rankdir;
 };
 
 function editorTheme(theme) {
@@ -525,7 +531,7 @@ function createDot(selectedSubjects) {
   }
   dotText = `digraph {
     node [shape="box", style="rounded"];
-    rankdir="LR"; ratio="auto";
+    rankdir="${dot_rankdir}"; ratio="auto";
     subgraph RDF {
       ${rdfGraph}
     }
@@ -951,6 +957,9 @@ document.querySelector("#subjects input").addEventListener("change", function() 
   createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
 });
 document.querySelector("#type input").addEventListener("change", function() {
+  createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
+});
+document.querySelector("#dot_layout").addEventListener("change", function() {
   createDot([...document.querySelector("#subs").options].filter(option => option.selected).map(option => option.value));
 });
 updateGraph();
