@@ -25,7 +25,7 @@ var startupRDF = `
     ].
 ####### INSTRUCTIONS ###############################################
 ## To view in the graph pane:
-## 1: click the "Go" button - this will populate the select box with the
+## 1: click the "Get All" button - this will populate the select box with the
 ##    identifiers of the subjects and the blank nodes in the Turtle
 ## 2: click on any subject or blank node identifier and wait a second or so
 
