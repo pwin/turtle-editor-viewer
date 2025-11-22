@@ -1,0 +1,132 @@
+.graph-visualization-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden; /* Changed from auto to hidden for pan-zoom */
+  background-color: #ffffff;
+}
+
+.graph-content-area {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  overflow: hidden; /* Critical: no scrollbars to interfere with pan-zoom */
+}
+
+.graph-content-area svg {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+}
+
+.graph-content-area svg:active {
+  cursor: grabbing;
+}
+
+/* Ensure SVG content is contained */
+.graph-content-area #svg_output {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.graph-content-area pre {
+  background-color: #f8f9fa;
+  color: #495057;
+  padding: 16px;
+  border-radius: 4px;
+  border: 1px solid #e1e5e9;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  max-width: 90%;
+  max-height: 90%;
+  overflow: auto;
+}
+
+.graph-placeholder {
+  text-align: center;
+  color: #6c757d;
+  padding: 40px;
+}
+
+.graph-placeholder p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.graph-error {
+  background-color: #dc3545;
+  color: #ffffff;
+  padding: 16px;
+  border-radius: 4px;
+  max-width: 80%;
+  max-height: 80%;
+  overflow: auto;
+  border: 1px solid #c82333;
+}
+
+.graph-error p {
+  margin: 0 0 8px 0;
+  font-weight: bold;
+}
+
+.graph-error pre {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 8px;
+  border-radius: 2px;
+  font-size: 11px;
+  white-space: pre-wrap;
+}
+
+/* Graph instructions overlay */
+.graph-instructions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(100, 108, 255, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  z-index: 1000;
+  pointer-events: none;
+  animation: fadeInOut 3s ease-in-out;
+}
+
+.instruction-item {
+  margin: 2px 0;
+  white-space: nowrap;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(10px); }
+  20% { opacity: 1; transform: translateX(0); }
+  80% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(10px); }
+}
+
+/* SVG pan-zoom control styling */
+.graph-content-area .svg-pan-zoom-controls {
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  background-color: rgba(248, 249, 250, 0.9) !important;
+  border: 1px solid #e1e5e9 !important;
+  border-radius: 4px !important;
+}
+
+.graph-content-area .svg-pan-zoom-controls .svg-pan-zoom-control {
+  background-color: #ffffff !important;
+  border: 1px solid #ced4da !important;
+  color: #495057 !important;
+}
+
+.graph-content-area .svg-pan-zoom-controls .svg-pan-zoom-control:hover {
+  background-color: #646cff !important;
+  color: #ffffff !important;
+}

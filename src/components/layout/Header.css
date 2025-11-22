@@ -1,0 +1,65 @@
+.app-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e1e5e9;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #213547;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-area h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  letter-spacing: 0.5px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.help-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  background: transparent;
+  color: #64748b;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.help-button:hover {
+  background-color: #64748b;
+  color: white;
+  border-color: #64748b;
+}
+
+.app-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
