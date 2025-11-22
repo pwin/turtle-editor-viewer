@@ -1,0 +1,564 @@
+import type { RDFQuad, SPARQLQuery } from '@/types'
+import {Comunica, QueryEngine} from '@comunica/query-sparql'; 
+import {N3} from 'n3';
+// const QueryEngine = require('@comunica/query-sparql').QueryEngine;
+
+const myEngine = new QueryEngine();
+
+// Declare global Comunica
+declare global {
+  interface Window {
+    Comunica: {
+      newEngine: () => any
+    }
+    N3: {
+      Store: new () => any
+    }
+  }
+}
+
+export interface SPARQLResult {
+  head: {
+    vars: string[]
+  }
+  results: {
+    bindings: Array<Record<string, {
+      type: 'uri' | 'literal' | 'bnode'
+      value: string
+      datatype?: string
+      'xml:lang'?: string
+    }>>
+  }
+}
+
+export interface SPARQLExecutionResult {
+  results?: SPARQLResult
+  boolean?: boolean
+  error?: string
+}
+
+/**
+ * @deprecated Use useSparqlEngine hook and SparqlUtils instead.
+ * This class is maintained for backward compatibility but will be removed in future versions.
+ */
+export class SPARQLEngine {
+  private store: RDFQuad[] = []
+
+  constructor() {
+    console.warn('SPARQLEngine is deprecated. Please use useSparqlEngine hook instead.')
+  }
+
+  /**
+   * Set the RDF store for querying
+   */
+  setStore(quads: RDFQuad[]): void {
+    this.store = quads
+  }
+
+  /**
+   * Execute a SPARQL query using Comunica engine
+   */
+  async executeQuery(query: string): Promise<SPARQLExecutionResult> {
+    try {
+      if (this.store.length === 0) {
+        throw new Error('No RDF data loaded. Please parse RDF content first.')
+      }
+
+      // Check if Comunica and N3 are available
+      if (!window.Comunica || !window.N3) {
+        throw new Error('Comunica SPARQL engine or N3 Store not available. Please ensure the libraries are loaded.')
+      }
+
+      // Create N3 Store and add quads (following original pattern)
+      const queryStore = new window.N3.Store()
+      
+      // Add all quads to the store
+      this.store.forEach(quad => {
+        queryStore.addQuad(quad)
+      })
+      
+      if (queryStore.size === 0) {
+        throw new Error('No RDF triples available to query.')
+      }
+
+      console.log(`Executing SPARQL query against ${queryStore.size} triples`)
+      
+      // Create Comunica engine (following original pattern)
+      const myEngine = window.Comunica.newEngine()
+      const config = { sources: [queryStore] }
+      
+      // Execute query
+      const results = await myEngine.query(query, config)
+      
+      const normalizedQuery = query.trim().toLowerCase()
+      
+      if (normalizedQuery.includes('select ')) {
+        return await this.handleSelectResults(myEngine, results)
+      } else if (normalizedQuery.includes('describe ') || normalizedQuery.includes('construct ')) {
+        return await this.handleConstructResults(results)
+      } else if (normalizedQuery.includes('ask ')) {
+        return await this.handleAskResults(results)
+      } else {
+        throw new Error('Unsupported query type')
+      }
+      
+    } catch (error) {
+      console.error('SPARQL execution error:', error)
+      return {
+        error: `SPARQL execution error: ${error}`
+      }
+    }
+  }
+
+  /**
+   * Handle SELECT query results from Comunica
+   */
+  private async handleSelectResults(engine: any, results: any): Promise<SPARQLExecutionResult> {
+    try {
+      const { data } = await engine.resultToString(results, 'application/sparql-results+json')
+      
+      let jsonString = ''
+      
+      return new Promise((resolve, reject) => {
+        data.on('data', (chunk: string) => {
+          jsonString += chunk
+        })
+        
+        data.on('end', () => {
+          try {
+            const parsedResults = JSON.parse(jsonString)
+            resolve({
+              results: parsedResults
+            })
+          } catch (parseError) {
+            reject(new Error(`Error parsing SPARQL results: ${parseError}`))
+          }
+        })
+        
+        data.on('error', (error: any) => {
+          reject(new Error(`Error in SPARQL result stream: ${error}`))
+        })
+      })
+    } catch (error) {
+      throw new Error(`SELECT result handling error: ${error}`)
+    }
+  }
+
+  /**
+   * Handle CONSTRUCT/DESCRIBE query results
+   */
+  private async handleConstructResults(results: any): Promise<SPARQLExecutionResult> {
+    const triples: any[] = []
+    
+    return new Promise((resolve, reject) => {
+      results.quadStream.on('data', (quad: any) => {
+        triples.push({
+          subject: quad.subject.value,
+          predicate: quad.predicate.value,
+          object: quad.object.value,
+          graph: quad.graph.value
+        })
+      })
+      
+      results.quadStream.on('end', () => {
+        // Convert to SELECT-like format for display
+        const bindings = triples.map(triple => ({
+          s: { type: 'uri' as const, value: triple.subject },
+          p: { type: 'uri' as const, value: triple.predicate },
+          o: { type: 'uri' as const, value: triple.object }
+        }))
+        
+        resolve({
+          results: {
+            head: { vars: ['s', 'p', 'o'] },
+            results: { bindings }
+          }
+        })
+      })
+      
+      results.quadStream.on('error', (error: any) => {
+        reject(new Error(`CONSTRUCT/DESCRIBE error: ${error}`))
+      })
+    })
+  }
+
+  /**
+   * Handle ASK query results
+   */
+  private async handleAskResults(results: any): Promise<SPARQLExecutionResult> {
+    try {
+      const hasMatches = await results.booleanResult
+      return {
+        boolean: hasMatches
+      }
+    } catch (error) {
+      throw new Error(`ASK query error: ${error}`)
+    }
+  }
+
+  /**
+   * Execute SELECT query - Basic pattern matching implementation
+   */
+  // private executeSelectQuery(query: string): SPARQLExecutionResult {
+  //   try {
+  //     // Extract variables from SELECT clause
+  //     const selectMatch = query.match(/select\s+(.*?)\s*(?:where\s*)?{/i)
+  //     if (!selectMatch) {
+  //       throw new Error('Invalid SELECT query format')
+  //     }
+      
+  //     const variables = this.extractVariables(selectMatch[1])
+      
+  //     // Extract WHERE clause patterns
+  //     const whereMatch = query.match(/{\s*(.*?)\s*}/s)
+  //     if (!whereMatch) {
+  //       throw new Error('No WHERE clause found')
+  //     }
+      
+  //     const patterns = this.parseTriplePatterns(whereMatch[1])
+      
+  //     // Execute pattern matching
+  //     const bindings = this.matchPatterns(patterns, variables)
+      
+  //     return {
+  //       results: {
+  //         head: {
+  //           vars: variables.includes('*') ? ['s', 'p', 'o'] : variables.filter(v => v !== '*')
+  //         },
+  //         results: {
+  //           bindings: bindings.slice(0, 100) // Limit results
+  //         }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     throw new Error(`SELECT query error: ${error}`)
+  //   }
+  // }
+
+  // /**
+  //  * Parse triple patterns from WHERE clause
+  //  */
+  // private parseTriplePatterns(whereClause: string): Array<{subject: string, predicate: string, object: string}> {
+  //   const patterns: Array<{subject: string, predicate: string, object: string}> = []
+    
+  //   // Remove comments and normalize whitespace
+  //   const cleaned = whereClause.replace(/#.*$/gm, '').replace(/\s+/g, ' ').trim()
+    
+  //   // Enhanced pattern to match URIs, variables, literals, and prefixed names
+  //   const triplePattern = /([?]?\w+:?\w*|<[^>]+>|_:[a-zA-Z0-9_-]+)\s+([?]?\w+:?\w*|<[^>]+>|a)\s+([?]?\w+:?\w*|<[^>]+>|"[^"]*"(?:\^\^<[^>]+>)?(?:@[a-zA-Z-]+)?|_:[a-zA-Z0-9_-]+|\d+(?:\.\d+)?)\s*[.;\s]*/g
+    
+  //   let match
+  //   while ((match = triplePattern.exec(cleaned)) !== null) {
+  //     patterns.push({
+  //       subject: match[1].trim(),
+  //       predicate: match[2].trim() === 'a' ? 'rdf:type' : match[2].trim(), // Handle 'a' shorthand
+  //       object: match[3].trim()
+  //     })
+  //   }
+    
+  //   // If no patterns found, try basic fallback
+  //   if (patterns.length === 0 && cleaned.includes('?')) {
+  //     patterns.push({
+  //       subject: '?s',
+  //       predicate: '?p',
+  //       object: '?o'
+  //     })
+  //   }
+    
+  //   return patterns
+  // }
+
+  // /**
+  //  * Match patterns against RDF store
+  //  */
+  // private matchPatterns(patterns: Array<{subject: string, predicate: string, object: string}>, variables: string[]): Array<Record<string, any>> {
+  //   const results: Array<Record<string, any>> = []
+    
+  //   if (patterns.length === 0) {
+  //     // Return all triples for SELECT * WHERE { ?s ?p ?o }
+  //     this.store.forEach(quad => {
+  //       const binding: Record<string, any> = {}
+        
+  //       if (variables.includes('s') || variables.includes('*')) {
+  //         binding.s = this.termToBinding(quad.subject)
+  //       }
+  //       if (variables.includes('p') || variables.includes('*')) {
+  //         binding.p = this.termToBinding(quad.predicate)
+  //       }
+  //       if (variables.includes('o') || variables.includes('*')) {
+  //         binding.o = this.termToBinding(quad.object)
+  //       }
+        
+  //       results.push(binding)
+  //     })
+  //   } else {
+  //     // Pattern matching for specific patterns
+  //     for (const pattern of patterns) {
+  //       this.store.forEach(quad => {
+  //         const binding: Record<string, any> = {}
+  //         let matches = true
+          
+  //         // Check subject (handles variables, URIs, and prefixed names)
+  //         if (pattern.subject.startsWith('?')) {
+  //           binding[pattern.subject.substring(1)] = this.termToBinding(quad.subject)
+  //         } else if (!this.termMatches(pattern.subject, quad.subject)) {
+  //           matches = false
+  //         }
+          
+  //         // Check predicate (handles variables, URIs, prefixed names, and 'rdf:type')
+  //         if (matches) {
+  //           if (pattern.predicate.startsWith('?')) {
+  //             binding[pattern.predicate.substring(1)] = this.termToBinding(quad.predicate)
+  //           } else if (!this.termMatches(pattern.predicate, quad.predicate)) {
+  //             matches = false
+  //           }
+  //         }
+          
+  //         // Check object (handles variables, URIs, literals, prefixed names)
+  //         if (matches) {
+  //           if (pattern.object.startsWith('?')) {
+  //             binding[pattern.object.substring(1)] = this.termToBinding(quad.object)
+  //           } else if (!this.termMatches(pattern.object, quad.object)) {
+  //             matches = false
+  //           }
+  //         }
+          
+  //         // Only add unique bindings
+  //         if (matches && !this.isDuplicateBinding(binding, results)) {
+  //           results.push(binding)
+  //         }
+  //       })
+  //     }
+  //   }
+    
+  //   return results
+  // }
+
+  /**
+   * Check for duplicate bindings
+   */
+  // private isDuplicateBinding(binding: Record<string, any>, existing: Array<Record<string, any>>): boolean {
+  //   return existing.some(existingBinding =>
+  //     JSON.stringify(binding) === JSON.stringify(existingBinding)
+  //   )
+  // }
+
+  // /**
+  //  * Convert RDF term to SPARQL result binding
+  //  */
+  // private termToBinding(term: any): any {
+  //   return {
+  //     type: (term.termType === 'NamedNode' ? 'uri' :
+  //           term.termType === 'Literal' ? 'literal' : 'bnode') as 'uri' | 'literal' | 'bnode',
+  //     value: term.value,
+  //     ...(term.datatype ? { datatype: term.datatype.value } : {}),
+  //     ...(term.language ? { 'xml:lang': term.language } : {})
+  //   }
+  // }
+
+  /**
+   * Check if a pattern term matches an RDF term
+   */
+  // private termMatches(pattern: string, term: any): boolean {
+  //   // Handle full URIs in angle brackets
+  //   if (pattern.startsWith('<') && pattern.endsWith('>')) {
+  //     return term.value === pattern.slice(1, -1)
+  //   }
+    
+  //   // Handle literals in quotes
+  //   if (pattern.startsWith('"') && pattern.endsWith('"')) {
+  //     return term.value === pattern.slice(1, -1)
+  //   }
+    
+  //   // Handle prefixed names (e.g., foaf:name, rdf:type)
+  //   if (pattern.includes(':') && !pattern.startsWith('http')) {
+  //     const [prefix, localName] = pattern.split(':')
+      
+  //     // Special case for rdf:type
+  //     if (prefix === 'rdf' && localName === 'type') {
+  //       return term.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+  //     }
+      
+  //     // TODO: Expand other prefixes based on context
+  //     // For now, try common prefixes
+  //     const commonPrefixes: Record<string, string> = {
+  //       'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  //       'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+  //       'owl': 'http://www.w3.org/2002/07/owl#',
+  //       'foaf': 'http://xmlns.com/foaf/0.1/',
+  //       'dc': 'http://purl.org/dc/elements/1.1/',
+  //       'ex': 'http://example.org/'
+  //     }
+      
+  //     const namespace = commonPrefixes[prefix]
+  //     if (namespace) {
+  //       return term.value === `${namespace}${localName}`
+  //     }
+  //   }
+    
+  //   // Direct value match
+  //   return pattern === term.value
+  // }
+
+  // /**
+  //  * Execute CONSTRUCT query
+  //  */
+  // private async executeConstructQuery(query: string): Promise<SPARQLExecutionResult> {
+  //   // For now, return the RDF store as-is
+  //   // In a real implementation, this would construct new triples
+  //   console.warn('CONSTRUCT queries not fully implemented')
+    
+  //   return {
+  //     results: {
+  //       head: { vars: [] },
+  //       results: { bindings: [] }
+  //     }
+  //   }
+  // }
+
+  // /**
+  //  * Execute DESCRIBE query
+  //  */
+  // private async executeDescribeQuery(query: string): Promise<SPARQLExecutionResult> {
+  //   // Extract resource URI from DESCRIBE query
+  //   const describeMatch = query.match(/describe\s+<([^>]+)>/i)
+  //   if (!describeMatch) {
+  //     throw new Error('Invalid DESCRIBE query format')
+  //   }
+    
+  //   const resourceURI = describeMatch[1]
+    
+  //   // Find all triples where the resource is subject or object
+  //   const relevantQuads = this.store.filter(quad => 
+  //     quad.subject.value === resourceURI || 
+  //     quad.object.value === resourceURI
+  //   )
+    
+  //   const bindings = relevantQuads.map(quad => ({
+  //     s: {
+  //       type: (quad.subject.termType === 'NamedNode' ? 'uri' : 'bnode') as 'uri' | 'bnode',
+  //       value: quad.subject.value
+  //     },
+  //     p: {
+  //       type: 'uri' as 'uri',
+  //       value: quad.predicate.value
+  //     },
+  //     o: {
+  //       type: (quad.object.termType === 'NamedNode' ? 'uri' :
+  //             quad.object.termType === 'Literal' ? 'literal' : 'bnode') as 'uri' | 'literal' | 'bnode',
+  //       value: quad.object.value
+  //     }
+  //   }))
+    
+  //   return {
+  //     results: {
+  //       head: { vars: ['s', 'p', 'o'] },
+  //       results: { bindings }
+  //     }
+  //   }
+  // }
+
+  // /**
+  //  * Execute ASK query
+  //  */
+  // private async executeAskQuery(query: string): Promise<SPARQLExecutionResult> {
+  //   // For demonstration, always return true if we have data
+  //   const hasData = this.store.length > 0
+    
+  //   return {
+  //     boolean: hasData
+  //   }
+  // }
+
+  // /**
+  //  * Extract variables from SELECT clause
+  //  */
+  // private extractVariables(selectClause: string): string[] {
+  //   if (selectClause.trim() === '*') {
+  //     return ['*']
+  //   }
+    
+  //   const variables = selectClause.match(/\?(\w+)/g)
+  //   return variables ? variables.map(v => v.substring(1)) : []
+  // }
+
+  // /**
+  //  * Generate common prefixes for SPARQL queries
+  //  */
+  // static generateCommonPrefixes(customPrefixes: Record<string, string> = {}): string {
+  //   const defaultPrefixes = {
+  //     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  //     'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+  //     'owl': 'http://www.w3.org/2002/07/owl#',
+  //     'xsd': 'http://www.w3.org/2001/XMLSchema#',
+  //     'foaf': 'http://xmlns.com/foaf/0.1/',
+  //     'dc': 'http://purl.org/dc/elements/1.1/',
+  //     'dcterms': 'http://purl.org/dc/terms/',
+  //     'skos': 'http://www.w3.org/2004/02/skos/core#',
+  //     ...customPrefixes
+  //   }
+    
+  //   return Object.entries(defaultPrefixes)
+  //     .map(([prefix, namespace]) => `PREFIX ${prefix}: <${namespace}>`)
+  //     .join('\n') + '\n\n'
+  // }
+
+//   /**
+//    * Validate SPARQL query syntax (basic validation)
+//    */
+//   static validateQuery(query: string): { isValid: boolean; error?: string } {
+//     const trimmed = query.trim().toLowerCase()
+    
+//     if (trimmed.length === 0) {
+//       return { isValid: false, error: 'Empty query' }
+//     }
+    
+//     const validStarters = ['select', 'construct', 'describe', 'ask', 'prefix']
+//     const startsValid = validStarters.some(starter => 
+//       trimmed.startsWith(starter) || 
+//       trimmed.includes(starter) // Allow for prefixes before main query
+//     )
+    
+//     if (!startsValid) {
+//       return { 
+//         isValid: false, 
+//         error: 'Query must start with SELECT, CONSTRUCT, DESCRIBE, ASK, or PREFIX' 
+//       }
+//     }
+    
+//     // Check for balanced braces
+//     const openBraces = (query.match(/{/g) || []).length
+//     const closeBraces = (query.match(/}/g) || []).length
+    
+//     if (openBraces !== closeBraces) {
+//       return { isValid: false, error: 'Unbalanced braces in query' }
+//     }
+    
+//     return { isValid: true }
+//   }
+
+//   /**
+//    * Format SPARQL results as CSV
+//    */
+//   static formatResultsAsCSV(results: SPARQLResult): string {
+//     if (!results.results.bindings.length) {
+//       return 'No results'
+//     }
+    
+//     const headers = results.head.vars.join(',')
+//     const rows = results.results.bindings.map(binding => 
+//       results.head.vars.map(variable => 
+//         binding[variable]?.value || ''
+//       ).join(',')
+//     )
+    
+//     return [headers, ...rows].join('\n')
+//   }
+
+//   /**
+//    * Count results
+//    */
+//   static countResults(results: SPARQLResult): number {
+//     return results.results.bindings.length
+//   }
+// }

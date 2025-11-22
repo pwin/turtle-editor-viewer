@@ -1,0 +1,77 @@
+.graph-pane-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f8f9fa;
+  min-height: 0; /* Important for flex overflow */
+}
+
+.graph-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* Important for flex overflow */
+}
+
+.graph-visualization-area {
+  /* Controlled by Split.js */
+  position: relative;
+  overflow: hidden; /* Hide to prevent pan-zoom conflicts */
+  background-color: #ffffff;
+  border-bottom: 1px solid #e1e5e9;
+  min-height: 0;
+}
+
+.sparql-panel-area {
+  /* Controlled by Split.js */
+  min-height: 0;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e1e5e9;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-error {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  background-color: #dc3545;
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 4px;
+  z-index: 10;
+  border: 1px solid #c82333;
+}
+
+.graph-error p {
+  margin: 0 0 8px 0;
+  font-weight: bold;
+}
+
+.graph-error pre {
+  margin: 0;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.graph-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #ffffff;
+  color: #495057;
+  padding: 16px 24px;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e1e5e9;
+  z-index: 10;
+}
+
+.graph-loading p {
+  margin: 0;
+  font-size: 14px;
+}

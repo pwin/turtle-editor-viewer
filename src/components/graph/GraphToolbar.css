@@ -1,0 +1,96 @@
+.graph-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 8px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e1e5e9;
+  font-size: 12px;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.graph-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.graph-toolbar select,
+.graph-toolbar input[type="text"] {
+  background-color: #ffffff;
+  border: 1px solid #ced4da;
+  color: #495057;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  min-width: 60px;
+}
+
+.graph-toolbar select:focus,
+.graph-toolbar input[type="text"]:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+.graph-toolbar button {
+  background-color: #646cff;
+  border: none;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.graph-toolbar button:hover {
+  background-color: #535bf2;
+}
+
+.graph-toolbar button:active {
+  background-color: #4c4fad;
+}
+
+.url-input {
+  min-width: 200px;
+  max-width: 300px;
+}
+
+
+/* Checkbox styling */
+.graph-toolbar input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #646cff;
+}
+
+/* Show Facts button styling */
+.show-facts-btn {
+  background-color: #198754 !important;
+  font-weight: 600 !important;
+}
+
+.show-facts-btn:hover {
+  background-color: #157347 !important;
+}
+
+.show-facts-btn:active {
+  background-color: #146c43 !important;
+}

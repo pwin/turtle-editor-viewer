@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Turtle Editor Viewer</title>
+        <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="css/viz.js.css"/>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+        <!-- script type="text/javascript" src="js/ace/ace.js"></script -->
+        <script type="text/javascript" src="js/ace-builds/src-min-noconflict/ace.js" charset="utf-8"></script>
+        <script type="text/javascript" src="js/Split.js/split.min.js"></script>
+        <script type="text/javascript" src="js/fabric.js/fabric.min.js"></script>
+        <script type="text/javascript" src="js/svg-pan-zoom/svg-pan-zoom.min.js"></script>
+        <script type="text/javascript" src="js/viz.js/viz.js"></script>
+        <script type="text/javascript" src="js/js/getURLParams.js"></script>
+        <script type="text/javascript" src="js/rdfjs/rdf-ext-1.9.0.js"  charset="utf-8"></script>
+        <!-- script src="http://rdf.js.org/comunica-browser/versions/1/packages/actor-init-sparql/comunica-browser.js"    type="text/javascript" charset="utf-8"></script --> 
+        <script type="text/javascript" src="js/n3/n3.min.js"></script> 
+        <script type="text/javascript" src="js/d3sparql/d3.v7.min.js"></script> 
+        <script type="text/javascript" src="js/d3sparql/d3sparql.js"></script>   
+    </head>
+<body>
+      <div id="app">
+         <div id="panes" class="split split-horizontal">
+          <div id="editor-container" class="split">
+            <div id="editor">
+            
+            </div>
+          </div>
+          <div id="graph" class="split">
+            <div id="options">
+              <div>
+              <input type="file" id="openbtn" onchange="openCode(this.files)" value="Open">
+              <input type="button" id="savebtn" value="Download File">
+              </div>
+              <table><tr><td>
+                <label id="lang">
+                  Lang:
+                  <select onchange="editorLang(this.value)">
+                     <option selected="selected">turtle</option>
+                     <option>xml</option>
+                     <option>javascript</option>
+                     <option>dot</option>
+                      </select>
+                     </label>
+                     <label id="theme">
+                  Theme:
+                  <select onchange="editorTheme(this.value)">
+                     <option selected="selected">cobalt</option>
+                     <option>dawn</option>
+                     <option>eclipse</option>
+                     <option>github</option>
+                    </select>
+                     </label>
+                     <label id="prefix">
+                      <input type="checkbox" />prefix</label>
+                      <label id="type">
+                        <input type="checkbox" />omit rdf:type</label>
+                        <label id="subjects">
+                          <input type="checkbox" />subjects</label>
+                     <label id="dot_layout_label">
+                     Dot Layout Direction:
+                     <select id="dot_layout" onchange="dotLayout(this.value)">
+                     <option selected="selected">LR</option>
+                     <option>RL</option>
+                     <option>TB</option>
+                     <option>BT</option>
+                     </select>
+                     </label>
+                     <!-- button onclick="go()">Go</button -->
+                    <!-- button onclick="getRDF()">Get RDF</button -->
+                    <!-- button onclick="getSubjects()">Subjects</button -->
+                    </td>
+                    <td rowspan="3">
+                      <div id="sparqlDiv"><div>SPARQL Pane (results in console)</div></div><textarea id="sparqlText" rows="10" style="margin: 0px; width: 323px; height: 98px;">select * {?s ?p ?o}</textarea><br/>
+                      <button onclick="document.getElementById('sparqlText').value = createSPARQLprefixes()">Add Prefixes</button>
+                      <button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button>
+                      <button onclick="clearSparqlPane()">Clear Results</button>
+                    </div>
+                    </td>
+                  </tr>
+                    <tr><td>
+					<table><tr><td>
+                  <label id="subjectsSel">
+				  Subjects:<br/>
+				  <button onclick="go()">Get All</button><br/>
+					Select to draw
+                  </label>
+				  </td><td>
+				  <select class="selectpicker" id="subs" multiple="multiple" onchange="createDot([...this.options].filter(option => option.selected).map(option => option.value))" style="margin: 0px; height: 86px; width: 403px;">   
+                      </select>
+					  </td>
+					  </tr>
+					  </table>
+                  <label id="engine">
+                     Viz:
+                     <select>
+                        <option>circo</option>
+                        <option selected="selected">dot</option>
+                        <option>fdp</option>
+                        <option>neato</option>
+                        <option>osage</option>
+                        <option>twopi</option>
+                            </select>
+                  </label>
+                  <label id="format">
+                     Fmt:
+                     <select>
+                        <option selected="selected">svg</option>
+                        <option>png</option>
+                        <option>json</option>
+                        <option>xdot</option>
+                        <option>plain</option>
+                        <option>ps</option>
+                            </select>
+                        </label>
+                        <label id="raw">
+                            <input type="checkbox"/>raw</label>
+                        </td></tr>
+                        <tr><td>
+                        <label id="url">URL:
+                        <input id="urlVal" value="https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/DCAT_v2_summary.dot"></input>
+                      </label>
+                        <button onClick="load_url(document.querySelector('#url input').value)">Load URL</button>
+                        <!-- button onClick="convertTo('turtle')">To Turtle</button -->
+                        <!-- button onClick="convertTo('rdfxml')">To RDF/XML</button -->
+                        <button onClick="convertTo('jsonld')">To JSON-LD</button>
+                        <button onClick="convertTo('turtle')">To Turtle</button>
+                        <button onClick="showFacts()">Show Facts</button>
+                        <a href="https://github.com/pwin/turtle-editor-viewer" target="_repo">[repo]</a>
+                        <a href="/">[HOME]</a>
+                        </td></tr>
+                      </table>
+                    </div>
+                    
+                    <!--div id="sparqlDiv"><div>SPARQL Pane</div></div><textarea id="sparqlText"></textarea><button onclick="sparqlQuery(document.getElementById('sparqlText').value)">SPARQL query</button></div -->
+                    
+                    <div id="output"/>
+                    <div id="error"/>
+               </div>
+            </div>
+            <div id="outputsparql" class="split" style="overflow: scroll;"/>
+         </div>
+      </div>
+      <script type="text/javascript" src="js/resources/viz.js.app.js"></script>
+      <script>
+      // Create the XHR object.
+function createCORSRequest(method, url) {
+  var xhr = new XMLHttpRequest();
+  if ("withCredentials" in xhr) {
+    //alert("with Credentials");
+    // XHR for Chrome/Firefox/Opera/Safari.
+    xhr.open(method, url, true);
+    xhr.setRequestHeader("Accept", "text/plain");
+  } else if (typeof XDomainRequest != "undefined") {
+    // XDomainRequest for IE.
+    xhr = new XDomainRequest();
+    //alert("Domain request");
+    xhr.open(method, url);
+  } else {
+    // CORS not supported.
+    xhr = null;
+  }
+  return xhr;
+}
+
+
+// Make the actual CORS request.
+function makeCorsRequest(url, type) {
+
+  var xhr = createCORSRequest('GET', url);
+  if (!xhr) {
+    alert('CORS not supported');
+    return;
+  }
+  // Response handlers.
+  xhr.onload = function() {
+    var text = xhr.responseText;
+    if(type==="rdfa") {
+      alert("RDFa");
+      parseRDFa(text)
+    }
+    else {
+      editor.setValue(text);
+    }
+  };
+  xhr.onerror = function(e) {
+    alert('Woops, there was an error making the request.' + xhr.status + ' : ' + xhr.statusText);
+  };
+  xhr.send();
+}
+
+  //some test URLs
+  var url1 = 'https://raw.githubusercontent.com/pwin/model-viewer/master/dot_files/';
+  var url = 'simple1.dot';
+
+function driver(url){
+  if(confirm("do you want to change the data source?")){
+    var f = url1 + url;
+    console.log(f)
+  makeCorsRequest(f, '');
+  }
+  else {
+    return false
+  }
+}
+
+function load_url(url){
+  if(confirm("do you want to change the data source?")){
+    var f = url;
+    console.log(f)
+  makeCorsRequest(f, '');
+  }
+  else {
+    return false
+  }
+}
+
+var dot = getUrlParameter('dot');
+if (dot && isValidURL(dot) && confirm("do you want to change the data source to \n" + dot + "\n?")) {
+ 
+    document.getElementById("urlVal").value  = dot
+    makeCorsRequest(dot, '');
+    updateGraph();
+}
+var rdfa = getUrlParameter('rdfa');
+if (rdfa && isValidURL(rdfa) && confirm("do you want to change the data source to \n" + rdfa + "\n?")) {
+ 
+    document.getElementById("urlVal").value  = rdfa
+    makeCorsRequest(rdfa, "rdfa");
+    updateGraph();
+}
+
+
+function openCode(files) {
+                var file = files[0]
+                if (!file) return;
+                reader = new FileReader();
+                reader.onload = function() {
+                    editor.session.setValue(reader.result)
+                }  
+                reader.readAsText(file) 
+            }
+
+document.getElementById("savebtn").addEventListener("click", ()=>{
+    var file = new File([editor.getValue().trim()], "myFile.ttl", {type: "text/plain;charset=utf-8"});
+    saveAs(file);
+})
+
+function clearSparqlPane() {
+  document.getElementById('outputsparql').outerHTML = "<div id='outputsparql' class='split'/>"
+}
+
+window.onload = function(e){go()} ;
+</script>
+</body>
+</html>

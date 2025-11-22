@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - Turtle Editor Viewer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        h1 img {
+            margin-right: 15px;
+            border-radius: 4px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            border-bottom: 1px solid #e1e1e1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #455a64;
+            margin-top: 20px;
+        }
+        code {
+            background-color: #e0e0e0;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <img src="/images/semantechsLogo.jpeg" height="50" alt="Semantechs Logo" />
+            User Guide
+        </h1>
+        <p>Welcome to the <strong>Turtle Editor Viewer</strong>, a modern tool for editing RDF data, visualizing graphs, and executing SPARQL queries. This guide covers the key features and how to use them effectively.</p>
+
+        <h2>1. Getting Started</h2>
+        <h3>Interface Overview</h3>
+        <p>The application interface is divided into two main resizable panes:</p>
+        <ul>
+            <li><strong>Editor Pane</strong> (Left): A robust code editor for writing and loading RDF data. This pane also includes the <strong>Subjects</strong> selection and filtering tools.</li>
+            <li><strong>Graph & SPARQL Pane</strong> (Right): Contains the visual graph representation of your data and the SPARQL query interface.</li>
+        </ul>
+        <p>You can adjust the width of the panes by dragging the vertical separator between them. The Graph pane is further split horizontally between the visualization area and the SPARQL panel.</p>
+
+        <h2>2. Working with Data (Editor Pane)</h2>
+        <p>The Editor Pane allows you to input, modify, and manage your RDF data.</p>
+        
+        <h3>Loading Data</h3>
+        <p>There are three ways to load data into the editor:</p>
+        <ol>
+            <li><strong>Direct Input</strong>: Simply type or paste your code into the editor.</li>
+            <li><strong>Open File</strong>: Click the <code>Choose File</code> button in the toolbar to load a local file. Supported formats include:
+                <ul>
+                    <li>Turtle (<code>.ttl</code>)</li>
+                    <li>RDF/XML (<code>.rdf</code>, <code>.xml</code>)</li>
+                    <li>JSON-LD (<code>.json</code>, <code>.jsonld</code>)</li>
+                    <li>DOT (<code>.dot</code>)</li>
+                </ul>
+            </li>
+            <li><strong>Load from URL</strong>: In the Graph Toolbar (right pane), enter a URL and click <code>Load URL</code>. <em>Note: The server hosting the file must support CORS.</em></li>
+        </ol>
+
+        <h3>Editor Settings</h3>
+        <p>The toolbar at the top of the editor provides several customization options:</p>
+        <ul>
+            <li><strong>Language</strong>: Manually set the syntax highlighting (Turtle, RDF/XML, JSON-LD, DOT). The editor usually auto-detects this based on content.</li>
+            <li><strong>Theme</strong>: Choose your preferred color scheme (Cobalt, Dawn, Eclipse, GitHub).</li>
+        </ul>
+
+        <h3>Saving Data</h3>
+        <p>To save your current work, click the <code>Save File</code> button. This will download the current editor content as a file (defaulting to <code>turtle-file.ttl</code>) to your computer.</p>
+
+        <h2>3. Visualizing Graphs</h2>
+        <p>The Graph Pane automatically visualizes the relationships defined in your RDF data using Graphviz.</p>
+
+        <h3>Generating a Graph</h3>
+        <ol>
+            <li><strong>Automatic Detection</strong>: As you type, the application parses your code. If valid RDF is detected, it identifies "Subjects" (resources that have properties).</li>
+            <li><strong>Subject Selection</strong>:
+                <ul>
+                    <li><strong>Specific Subjects</strong>: In the <strong>Editor Toolbar</strong> (top right of the left pane), use the <strong>Subjects</strong> dropdown to select one or more subjects to visualize.</li>
+                    <li><strong>Search Filter</strong>: Use the filter box above the subjects dropdown to quickly find specific resources by name.</li>
+                    <li><strong>Get All</strong>: Click the <code>Get All</code> button in the Graph Toolbar (right pane) to visualize the entire dataset (limited to the first 10 subjects by default for performance). <em>Note: When loading a new file, the first 10 subjects are automatically selected.</em></li>
+                </ul>
+            </li>
+        </ol>
+
+        <h3>Customization Options</h3>
+        <p>You can customize how the graph is rendered using the toolbar controls in the Graph Pane:</p>
+        <ul>
+            <li><strong>Engine</strong>: Change the Graphviz layout algorithm (e.g., <code>dot</code> for hierarchies, <code>neato</code> for force-directed, <code>circo</code> for circular layouts).</li>
+            <li><strong>Format</strong>: Select the output format (<code>SVG</code> is recommended for interactivity, <code>PNG</code> for static images, <code>JSON</code>/<code>XDOT</code> for raw data).</li>
+            <li><strong>Layout</strong>: Change the direction of the graph (e.g., Left-to-Right <code>LR</code>, Top-to-Bottom <code>TB</code>).</li>
+            <li><strong>Display Toggles</strong>:
+                <ul>
+                    <li><code>Prefixes</code>: Toggle shortened namespace prefixes (e.g., <code>rdf:type</code> vs full IRIs).</li>
+                    <li><code>Hide Types</code>: Hides <code>rdf:type</code> relationships to declutter the graph.</li>
+                    <li><code>Hide Annotations</code>: Hides common annotation properties (labels, comments, notes) to focus on structural relationships.</li>
+                    <li><code>Subjects</code>: Toggle visibility of subject nodes.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>Interaction</h3>
+        <ul>
+            <li><strong>Pan & Zoom</strong>: Use your mouse wheel to zoom in/out and click-and-drag to pan around the graph.</li>
+            <li><strong>Context Menu</strong>: Right-click on a node to see more details or perform specific actions (depending on the node type).</li>
+        </ul>
+
+        <h2>4. Querying with SPARQL</h2>
+        <p>The SPARQL Panel at the bottom right allows you to query the data currently loaded in the editor.</p>
+
+        <h3>Executing Queries</h3>
+        <ol>
+            <li><strong>Write Query</strong>: Enter your SPARQL query in the text area.</li>
+            <li><strong>Add Prefixes</strong>: Click <code>Add Prefixes</code> to automatically prepend common prefixes defined in your RDF data.</li>
+            <li><strong>Execute</strong>: Click <code>Execute Query</code> to run the query.</li>
+        </ol>
+
+        <h3>Supported Query Types</h3>
+        <p>The engine supports standard SPARQL 1.1 query forms:</p>
+        <ul>
+            <li><code>SELECT</code>: Returns a table of results.</li>
+            <li><code>ASK</code>: Returns a boolean (True/False).</li>
+            <li><code>CONSTRUCT</code>: Returns an RDF graph.</li>
+            <li><code>DESCRIBE</code>: Returns an RDF graph describing resources.</li>
+        </ul>
+
+        <h3>Viewing Results</h3>
+        <p>Results are displayed in a table below the query editor. You can clear the results by clicking <code>Clear Results</code>.</p>
+
+        <h2>5. Advanced Features</h2>
+
+        <h3>Reasoning (Hylar)</h3>
+        <p>The application includes a client-side reasoner (Hylar) that supports OWL 2 RL.</p>
+        <ul>
+            <li>Click <code>Show Facts</code> in the Graph Toolbar to perform reasoning on your data.</li>
+            <li>This opens a new window showing <strong>Explicit Triples</strong> (asserted in your data) and <strong>Implicit Triples</strong> (inferred by the reasoner).</li>
+        </ul>
+
+        <h3>Format Conversion</h3>
+        <p>You can convert your current RDF data between formats using the buttons in the Graph Toolbar:</p>
+        <ul>
+            <li><code>To Turtle</code>: Converts current data to Turtle format.</li>
+            <li><code>To JSON-LD</code>: Converts current data to JSON-LD format.</li>
+        </ul>
+
+        <h3>URL Parameters</h3>
+        <p>You can pre-load data when sharing a link to the application:</p>
+        <ul>
+            <li><code>?dot=<url></code>: Loads a DOT or Turtle file from the specified URL.</li>
+        </ul>
+
+        <div class="footer">
+            <p>Documentation generated for Turtle Editor Viewer v2.0.0</p>
+        </div>
+    </div>
+</body>
+</html>
