@@ -5,7 +5,7 @@ import { resolve } from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/turtle-editor-viewer-new/',
+  base: './',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -31,6 +31,7 @@ export default defineConfig({
           // Editor and viz are large, keep them separate
           editor: ['monaco-editor', '@monaco-editor/react'],
           viz: ['@viz-js/viz'],
+          sparql: ['@comunica/query-sparql'],
           // Split out other large dependencies if needed
           utils: ['lodash', 'file-saver'],
         },

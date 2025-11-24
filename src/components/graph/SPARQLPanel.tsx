@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { DataFactory } from 'n3' ;
 import { saveAs } from 'file-saver';
 import { useAppContext } from '@/store/AppProvider';
 import { RDFParser } from '@/services/rdf-parser';
 import { useSparqlEngine } from './useSparqlEngine';
+import MonacoEditorComponent from '@/components/editor/MonacoEditorComponent';
 
 import { SparqlUtils } from '@/utils/sparql-utils';
 import './SPARQLPanel.css';
@@ -17,10 +18,59 @@ function SPARQLPanel() {
   const { sparql } = state
   const [showResults, setShowResults] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  const splitContainerRef = useRef<HTMLDivElement>(null)
+  const splitInstanceRef = useRef<any>(null)
 
-  const handleQueryChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    dispatch({ type: 'SET_SPARQL_QUERY', payload: event.target.value })
+  const handleQueryChange = (value: string) => {
+    dispatch({ type: 'SET_SPARQL_QUERY', payload: value })
   }
+
+  useEffect(() => {
+    const initSplit = async () => {
+      if (showResults && splitContainerRef.current) {
+        try {
+          const Split = (await import('split.js')).default
+          
+          // Clean up previous instance if exists
+          if (splitInstanceRef.current) {
+            splitInstanceRef.current.destroy()
+          }
+
+          // Ensure elements exist
+          const editorEl = splitContainerRef.current.querySelector('.sparql-editor-container')
+          const resultsEl = splitContainerRef.current.querySelector('.sparql-results-container')
+
+          if (editorEl && resultsEl) {
+            splitInstanceRef.current = Split(['.sparql-editor-container', '.sparql-results-container'], {
+              sizes: [40, 60],
+              minSize: [100, 100],
+              gutterSize: 8,
+              cursor: 'row-resize',
+              direction: 'vertical',
+            })
+          }
+        } catch (error) {
+          console.warn('Split.js not available for SPARQLPanel', error)
+        }
+      } else if (!showResults && splitInstanceRef.current) {
+        splitInstanceRef.current.destroy()
+        splitInstanceRef.current = null
+      }
+    }
+
+    // Small timeout to allow DOM to update
+    const timer = setTimeout(initSplit, 100)
+    return () => clearTimeout(timer)
+  }, [showResults])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (splitInstanceRef.current) {
+        splitInstanceRef.current.destroy()
+      }
+    }
+  }, [])
 
   const { executeQuery } = useSparqlEngine();
 
@@ -220,16 +270,18 @@ function SPARQLPanel() {
     // Handle serialized RDF result (CONSTRUCT/DESCRIBE)
     if (sparql.results.rdfResult) {
         return (
-            <div className="sparql-results">
-                <div className="results-header">
-                    <h4>Query Results (RDF Graph)</h4>
-                    <button onClick={handleClearResults} className="clear-btn">Clear</button>
-                </div>
-                <div className="results-table-container">
-                    <pre style={{ padding: '10px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                        {sparql.results.rdfResult}
-                    </pre>
-                </div>
+            <div className="sparql-results-container">
+              <div className="sparql-results">
+                  <div className="results-header">
+                      <h4>Query Results (RDF Graph)</h4>
+                      <button onClick={handleClearResults} className="clear-btn">Clear</button>
+                  </div>
+                  <div className="results-table-container">
+                      <pre style={{ padding: '10px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                          {sparql.results.rdfResult}
+                      </pre>
+                  </div>
+              </div>
             </div>
         )
     }
@@ -237,44 +289,46 @@ function SPARQLPanel() {
     const { head, results } = sparql.results
     
     if (!results || !results.bindings) {
-        return <div className="sparql-results"><div className="sparql-error">Invalid result format</div></div>
+        return <div className="sparql-results-container"><div className="sparql-results"><div className="sparql-error">Invalid result format</div></div></div>
     }
 
     const vars = head?.vars || []
     
     return (
-      <div className="sparql-results">
-        <div className="results-header">
-          <h4>Query Results ({results.bindings.length} rows)</h4>
-          <button onClick={handleClearResults} className="clear-btn">Clear</button>
-        </div>
-        
-        <div className="results-table-container">
-          <table className="results-table">
-            <thead>
-              <tr>
-                {vars.map((variable: string) => (
-                  <th key={variable}>{variable}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {results.bindings.map((binding: any, index: number) => (
-                <tr key={index}>
-                  {vars.map((variable: string) => {
-                    // keys are normalized in useSparqlEngine to match vars
-                    const value = binding[variable];
-                    
-                    return (
-                      <td key={variable} className={`cell-${value?.type || 'empty'}`}>
-                        {value?.value || ''}
-                      </td>
-                    )
-                  })}
+      <div className="sparql-results-container">
+        <div className="sparql-results">
+          <div className="results-header">
+            <h4>Query Results ({results.bindings.length} rows)</h4>
+            <button onClick={handleClearResults} className="clear-btn">Clear</button>
+          </div>
+          
+          <div className="results-table-container">
+            <table className="results-table">
+              <thead>
+                <tr>
+                  {vars.map((variable: string) => (
+                    <th key={variable}>{variable}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {results.bindings.map((binding: any, index: number) => (
+                  <tr key={index}>
+                    {vars.map((variable: string) => {
+                      // keys are normalized in useSparqlEngine to match vars
+                      const value = binding[variable];
+                      
+                      return (
+                        <td key={variable} className={`cell-${value?.type || 'empty'}`}>
+                          {value?.value || ''}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     )
@@ -288,8 +342,8 @@ function SPARQLPanel() {
           <button onClick={handleAddPrefixes} disabled={sparql.isExecuting}>
             Add Prefixes
           </button>
-          <button 
-            onClick={handleExecuteQuery} 
+          <button
+            onClick={handleExecuteQuery}
             disabled={sparql.isExecuting || !sparql.query.trim()}
             className="execute-btn"
           >
@@ -307,15 +361,15 @@ function SPARQLPanel() {
         </div>
       </div>
       
-      <div className="sparql-content">
+      <div className="sparql-content" ref={splitContainerRef}>
         {renderExportDialog()}
-        <div className="sparql-editor">
-          <textarea
+        <div className={`sparql-editor-container ${showResults ? 'split-view' : ''}`}>
+          <MonacoEditorComponent
             value={sparql.query}
             onChange={handleQueryChange}
-            placeholder="Enter SPARQL query here..."
-            disabled={sparql.isExecuting}
-            rows={6}
+            language="sparql"
+            theme={state.editor.theme}
+            fontSize={state.editor.fontSize}
           />
         </div>
         

@@ -98,6 +98,7 @@
   border-bottom: none;
 }
 
+
 .subject-filter:focus {
   outline: none;
   border-color: #646cff;
@@ -105,12 +106,14 @@
 
 .subjects-list {
   min-width: 200px;
-  max-height: 80px;
+  height: 80px;
   background-color: #ffffff;
   border: 1px solid #ced4da;
   color: #495057;
   border-radius: 0 0 3px 3px;
   font-size: 11px;
+  resize: vertical;
+  overflow: auto;
 }
 
 .subjects-list option {

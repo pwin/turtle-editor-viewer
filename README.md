@@ -111,7 +111,6 @@ npx prettier --write .
 
 Load content directly via URL parameters:
 - `?dot=<url>` - Load DOT or Turtle file from URL
-- `?rdfa=<url>` - Extract RDFa from HTML page
 
 Example:
 ```
