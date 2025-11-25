@@ -63,6 +63,7 @@ export interface GraphOptions {
   hideAnnotations: boolean
   showSubjects: boolean
   rawOutput: boolean
+  sortSubjects: boolean
 }
 
 export interface GraphState {

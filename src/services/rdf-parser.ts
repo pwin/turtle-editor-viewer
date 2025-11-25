@@ -15,7 +15,7 @@ export class RDFParser {
   /**
    * Parse RDF content and detect format automatically
    */
-  async parseRDF(content: string, language?: string): Promise<RDFParseResult> {
+  async parseRDF(content: string, language?: string, sortSubjects: boolean = false): Promise<RDFParseResult> {
     try {
       this.reset()
       
@@ -23,7 +23,7 @@ export class RDFParser {
       
       switch (detectedFormat) {
         case 'turtle':
-          return await this.parseTurtle(content)
+          return await this.parseTurtle(content, sortSubjects)
         case 'xml':
           return await this.parseRDFXML(content)
         case 'javascript':
@@ -31,7 +31,7 @@ export class RDFParser {
         case 'dot':
           return this.parseDOT()
         default:
-          return await this.parseTurtle(content) // Default fallback
+          return await this.parseTurtle(content, sortSubjects) // Default fallback
       }
     } catch (error) {
       return {
@@ -46,7 +46,7 @@ export class RDFParser {
   /**
    * Parse Turtle format
    */
-  private async parseTurtle(content: string): Promise<RDFParseResult> {
+  private async parseTurtle(content: string, sortSubjects: boolean = false): Promise<RDFParseResult> {
     try {
       // This is a simplified parser - in a real implementation you'd use n3.js
       // Dynamic import for N3.js when available
@@ -73,7 +73,7 @@ export class RDFParser {
           
           // When parsing is complete (quad is null)
           if (!quad) {
-            const subjects = this.extractSubjects(this.quads)
+            const subjects = this.extractSubjects(this.quads, sortSubjects)
             resolve({
               quads: this.quads,
               prefixes: this.prefixes,
@@ -304,7 +304,7 @@ export class RDFParser {
   /**
    * Extract unique subjects from quads
    */
-  private extractSubjects(quads: RDFQuad[]): string[] {
+  private extractSubjects(quads: RDFQuad[], sort: boolean = false): string[] {
     // Identify blank nodes that are objects (used in other triples)
     const blankNodeObjects = new Set<string>()
     quads.forEach(quad => {
@@ -329,7 +329,14 @@ export class RDFParser {
       }
     })
     
-    return Array.from(subjects).sort()
+    const subjectList = Array.from(subjects)
+    
+    if (sort) {
+        return subjectList.sort()
+    }
+    
+    // Maintain order of appearance (roughly, since Set iteration is insertion order)
+    return subjectList
   }
 
   /**

@@ -37,7 +37,7 @@ function GraphToolbar() {
       } else {
         // For RDF content, generate filtered graph
         const parser = new RDFParser()
-        const result = await parser.parseRDF(content, state.editor.language)
+        const result = await parser.parseRDF(content, state.editor.language, graph.options.sortSubjects)
         
         if (!result.error && result.quads.length > 0) {
           const generator = new GraphGenerator()
@@ -93,6 +93,17 @@ function GraphToolbar() {
     if (rdf.selectedSubjects.length > 0) {
       generateGraph(state.editor.content, rdf.selectedSubjects, { ...graph.options, [option]: isChecked })
     }
+    
+    // If sort option changed, re-parse RDF to update subject order
+    if (option === 'sortSubjects') {
+        const parser = new RDFParser()
+        parser.parseRDF(state.editor.content, state.editor.language, isChecked)
+            .then(result => {
+                if (!result.error) {
+                    dispatch({ type: 'SET_RDF_SUBJECTS', payload: result.subjects })
+                }
+            })
+    }
   }
 
   const handleURLLoad = async () => {
@@ -138,7 +149,7 @@ function GraphToolbar() {
         dispatch({ type: 'SET_SELECTED_SUBJECTS', payload: ['DOT_GRAPH'] })
       } else {
         // Parse RDF content
-        const result = await parser.parseRDF(content, state.editor.language)
+        const result = await parser.parseRDF(content, state.editor.language, graph.options.sortSubjects)
         if (result.error) {
           dispatch({ type: 'SET_GRAPH_ERROR', payload: result.error })
         } else {
@@ -354,6 +365,14 @@ function GraphToolbar() {
                   onChange={handleCheckboxChange('showSubjects')}
                 />
                 Subjects
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={graph.options.sortSubjects}
+                  onChange={handleCheckboxChange('sortSubjects')}
+                />
+                Sort Subjects
               </label>
             </>
           )}
