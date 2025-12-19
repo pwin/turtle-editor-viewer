@@ -13,7 +13,7 @@ function Header() {
         <span>RDF/Turtle Editor and Graph Visualizer</span>
         <button
           className="help-button"
-          onClick={() => window.open('/user-guide.html', 'User Guide', 'width=1000,height=800,scrollbars=yes')}
+          onClick={() => window.open('./user-guide.html', 'User Guide', 'width=1000,height=800,scrollbars=yes')}
           title="Open User Guide"
         >
           ?

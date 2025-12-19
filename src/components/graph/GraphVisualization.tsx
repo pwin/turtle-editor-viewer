@@ -22,6 +22,12 @@ function GraphVisualization() {
   const { state } = useAppContext()
   const { graph } = state
 
+  // Keep a ref to state to access latest values in global callbacks
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
+
   // Drag scrolling refs
   const isDragging = useRef(false)
   const startX = useRef(0)
@@ -113,7 +119,8 @@ function GraphVisualization() {
                     fit: true,
                     center: true,
                     minZoom: 0.01,
-                    maxZoom: 500
+                    maxZoom: 500,
+                    preventMouseEventsDefault: false
                   })
 
                   // Add resize handler (following original pattern)
@@ -281,7 +288,61 @@ function GraphVisualization() {
     let target = e.target as Element
     // Traverse up to find g.node
     while (target && target !== containerRef.current) {
-      if (target.tagName === 'g' && target.classList.contains('node')) {
+      // Check for node class safely (handling SVGAnimatedString)
+      const isNode = target.tagName === 'g' && target.classList && target.classList.contains('node');
+      
+      if (isNode) {
+        // Found a node
+        const title = target.querySelector('title')
+        if (title) {
+          let value = title.textContent || ''
+          
+          // Unwrap literals that might have been wrapped with newlines
+          if (value.includes('\n')) {
+            value = value.replace(/\n/g, ' ')
+          }
+
+          // Attempt to expand if it's a prefixed IRI
+          if (value.includes(':') && !value.includes(' ') && !value.startsWith('_:')) {
+             value = RDFParser.expandIRI(value, state.rdf.prefixes)
+          }
+          
+          // if (window.findTriplesForObject) {
+          //   window.findTriplesForObject(value)
+          // }
+        }
+        break
+      }
+      target = target.parentElement as Element
+    }
+  }
+
+  const lastClickTime = useRef(0)
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Only for SVG format
+    if (graph.options.format !== 'svg' || graph.options.rawOutput) return
+
+    // Prevent double execution from bubbling or rapid clicks (300ms debounce)
+    const now = Date.now()
+    if (now - lastClickTime.current < 300) {
+        e.stopPropagation()
+        return
+    }
+    lastClickTime.current = now
+    
+    let target = e.target as Element
+    // Traverse up to find g.node
+    while (target && target !== containerRef.current) {
+      // Check for node class safely (handling SVGAnimatedString)
+      // Some SVG elements might not have classList, use getAttribute as backup
+      const className = target.getAttribute ? (target.getAttribute('class') || '') : '';
+      const isNode = target.tagName === 'g' && (
+        (target.classList && target.classList.contains('node')) ||
+        (typeof className === 'string' && className.split(' ').includes('node'))
+      );
+      
+      if (isNode) {
         // Found a node
         const title = target.querySelector('title')
         if (title) {
@@ -301,6 +362,7 @@ function GraphVisualization() {
             window.findTriplesForObject(value)
           }
         }
+        e.stopPropagation()
         break
       }
       target = target.parentElement as Element
@@ -339,8 +401,10 @@ function GraphVisualization() {
   // Register global function for graph interaction
   useEffect(() => {
     window.findTriplesForObject = (objectValue: string) => {
-      const quads = state.rdf.quads
-      const prefixes = state.rdf.prefixes
+      // Use the ref to get the latest state without relying on closure capture at effect time
+      const currentState = stateRef.current
+      const quads = currentState.rdf.quads
+      const prefixes = currentState.rdf.prefixes
       const subjects: string[] = []
 
       quads.forEach(quad => {
@@ -349,18 +413,20 @@ function GraphVisualization() {
         }
       })
 
-      if (subjects.length > 0) {
-        alert("Matching Subjects:\n" + subjects.join('\n'))
+      // Sort subjects alphabetically and remove duplicates
+      const uniqueSubjects = Array.from(new Set(subjects)).sort()
+
+      if (uniqueSubjects.length > 0) {
+        alert("Matching Subjects:\n" + uniqueSubjects.join('\n'))
       } else {
         alert("No matching subjects found for object: " + objectValue)
       }
     }
 
     return () => {
-      // Cleanup if needed, though usually safe to leave on window
-      // (window as any).findTriplesForObject = undefined
+      // Cleanup if needed
     }
-  }, [state.rdf.quads, state.rdf.prefixes])
+  }, []) // Register once, use ref for dynamic data
 
   return (
     <div className="graph-visualization-container">
@@ -373,6 +439,7 @@ function GraphVisualization() {
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
         onContextMenu={handleContextMenu}
+        onClick={handleClick}
       />
     </div>
   )
