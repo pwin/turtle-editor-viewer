@@ -124,3 +124,16 @@
   background-color: #646cff;
   color: #ffffff;
 }
+.subject-label-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #5a6b7b;
+  white-space: nowrap;
+  margin: 2px 0;
+}
+
+.subject-label-toggle input {
+  margin: 0;
+}

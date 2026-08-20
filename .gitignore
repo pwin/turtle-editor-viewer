@@ -127,3 +127,7 @@ Thumbs.db
 
 # Project specific
 *_dump/*
+node_modules
+
+# Monaco editor, copied out of node_modules by scripts/setup-monaco.mjs
+public/monaco/

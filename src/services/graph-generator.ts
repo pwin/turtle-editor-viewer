@@ -1,5 +1,6 @@
 import type { RDFQuad, GraphOptions } from '@/types'
 import { RDFParser } from './rdf-parser'
+import { buildLabelDisplayMap } from '@/utils/label-utils'
 
 export interface DotGenerationResult {
   dotText: string
@@ -10,6 +11,16 @@ export class GraphGenerator {
   private prefixes: Record<string, string> = {}
   private declared: Map<any, string> = new Map()
   private nodeDeclarations: string[] = []
+  /** Node key -> text to render in the box, when a label should stand in for the IRI. */
+  private nodeLabels: Map<string, string> = new Map()
+  /**
+   * Node ids already given a declaration line. `declared` is keyed on the term
+   * object and the parser hands us a fresh object per occurrence, so without
+   * this the same node is re-declared once per mention.
+   */
+  private declaredRefs: Set<string> = new Set()
+  /** Predicate key -> text to render on the edge, when a label stands in for the IRI. */
+  private predicateLabels: Map<string, string> = new Map()
 
   /**
    * Generate DOT graph from RDF quads
@@ -18,12 +29,16 @@ export class GraphGenerator {
     quads: RDFQuad[],
     selectedSubjects: string[],
     options: GraphOptions,
-    prefixes: Record<string, string> = {}
+    prefixes: Record<string, string> = {},
+    labels: Record<string, string> = {}
   ): DotGenerationResult {
     try {
       this.prefixes = prefixes
       this.declared.clear()
       this.nodeDeclarations = []
+      this.nodeLabels.clear()
+      this.declaredRefs.clear()
+      this.predicateLabels.clear()
 
       if (selectedSubjects.length === 0) {
         return {
@@ -34,6 +49,15 @@ export class GraphGenerator {
 
       // Filter quads to only include selected subjects and recursively included blank nodes
       const relevantQuads = this.collectRelevantQuads(quads, selectedSubjects, options)
+
+      // Resolve display labels up front, so ambiguity is judged across exactly
+      // the nodes this diagram will contain.
+      if (options.showNodeLabels) {
+        this.nodeLabels = this.resolveNodeLabels(relevantQuads, labels)
+      }
+      if (options.showPredicateLabels) {
+        this.predicateLabels = this.resolvePredicateLabels(relevantQuads, labels)
+      }
 
       // Generate DOT content
       const graphContent = this.generateGraphContent(relevantQuads, options)
@@ -246,9 +270,56 @@ export class GraphGenerator {
   private generateQuadStatement(quad: RDFQuad, options: GraphOptions): string {
     const subjectRef = this.declareTerm(quad.subject, options)
     const objectRef = this.declareTerm(quad.object, options)
-    const predicateLabel = this.shrinkIRI(quad.predicate.value)
+    const predicateRef = this.shrinkIRI(quad.predicate.value)
+    const predicateLabel = this.predicateLabels.get(predicateRef) ?? predicateRef
 
-    return `  "${this.escapeDot(subjectRef)}" -> "${this.escapeDot(objectRef)}" [label="${predicateLabel}"];\n`
+    return `  "${this.escapeDot(subjectRef)}" -> "${this.escapeDot(objectRef)}" [label="${this.escapeDot(predicateLabel)}"];\n`
+  }
+
+  /**
+   * Work out the display text for every named/blank node in this diagram.
+   *
+   * Literals are excluded: they are values, not resources, so they have no IRI
+   * for a label to stand in for. The disambiguator puts the IRI on its own line
+   * so a box stays readable when two resources share a label.
+   */
+  private resolveNodeLabels(
+    quads: RDFQuad[],
+    labels: Record<string, string>
+  ): Map<string, string> {
+    const keys = new Set<string>()
+    for (const quad of quads) {
+      for (const term of [quad.subject, quad.object]) {
+        if (term.termType === 'NamedNode') keys.add(this.shrinkIRI(term.value))
+        else if (term.termType === 'BlankNode') keys.add(term.value)
+      }
+    }
+    return buildLabelDisplayMap(
+      Array.from(keys),
+      labels,
+      (label, key) => `${label}\\n〈${key}〉`
+    )
+  }
+
+  /**
+   * Work out the display text for every property used in this diagram.
+   *
+   * A property only has a label when the data describes it as a subject in its
+   * own right (e.g. `ff:hasElementPart rdfs:label "has element part"`), which is
+   * common in ontologies. Ambiguity is judged across predicates alone, since
+   * edge labels and node boxes are separate visual channels.
+   */
+  private resolvePredicateLabels(
+    quads: RDFQuad[],
+    labels: Record<string, string>
+  ): Map<string, string> {
+    const keys = new Set<string>()
+    for (const quad of quads) keys.add(this.shrinkIRI(quad.predicate.value))
+    return buildLabelDisplayMap(
+      Array.from(keys),
+      labels,
+      (label, key) => `${label}\\n〈${key}〉`
+    )
   }
 
   /**
@@ -260,7 +331,7 @@ export class GraphGenerator {
     }
 
     let ref = term.value
-    let attributes: string[] = []
+    const attributes: string[] = []
 
     if (term.termType === 'Literal') {
       ref = this.wordWrap(term.value)
@@ -274,13 +345,22 @@ export class GraphGenerator {
 
     this.declared.set(term, ref)
 
+    // The node id stays the IRI so edges keep pointing at the right node and
+    // two resources sharing a label can never merge; only the rendered text
+    // changes.
+    const display = this.nodeLabels.get(ref)
+    if (display) {
+      attributes.push(`label="${this.escapeDot(this.wordWrap(display))}"`)
+    }
+
     // Add click handler for subjects if enabled
     if (options.showSubjects) {
       const safeValue = term.value.replace(/'/g, "\\'")
       attributes.push(`URL="javascript:findTriplesForObject('${safeValue}')"`)
     }
 
-    if (attributes.length > 0) {
+    if (attributes.length > 0 && !this.declaredRefs.has(ref)) {
+      this.declaredRefs.add(ref)
       this.nodeDeclarations.push(`  "${this.escapeDot(ref)}" [${attributes.join(',')}];`)
     }
 

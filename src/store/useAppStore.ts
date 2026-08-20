@@ -75,6 +75,9 @@ const initialState: AppState = {
       showSubjects: false,
       rawOutput: false,
       sortSubjects: false,
+      showLabels: true,
+      showNodeLabels: true,
+      showPredicateLabels: true,
     },
     isGenerating: false,
     error: null,
@@ -84,6 +87,7 @@ const initialState: AppState = {
     subjects: [],
     prefixes: {},
     selectedSubjects: [],
+    labels: {},
   },
   sparql: {
     query: 'select * {?s ?p ?o}',

@@ -90,6 +90,7 @@ function EditorPane() {
           // Update store (subjects/prefixes)
           dispatch({ type: 'SET_RDF_QUADS', payload: result.quads })
           dispatch({ type: 'SET_RDF_SUBJECTS', payload: result.subjects })
+          dispatch({ type: 'SET_RDF_LABELS', payload: result.labels ?? {} })
           dispatch({ type: 'SET_RDF_PREFIXES', payload: result.prefixes })
           
           // Refresh graph if we have selected subjects
@@ -101,7 +102,8 @@ function EditorPane() {
                   result.quads,
                   state.rdf.selectedSubjects,
                   state.graph.options,
-                  result.prefixes
+                  result.prefixes,
+                  result.labels ?? {}
                 )
                 
                 if (!graphResult.error) {

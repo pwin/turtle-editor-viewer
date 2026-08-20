@@ -45,7 +45,8 @@ function GraphToolbar() {
             result.quads,
             selectedSubjects,
             options,
-            result.prefixes
+            result.prefixes,
+            result.labels ?? {}
           )
           
           if (graphResult.error) {
@@ -101,6 +102,7 @@ function GraphToolbar() {
             .then(result => {
                 if (!result.error) {
                     dispatch({ type: 'SET_RDF_SUBJECTS', payload: result.subjects })
+                    dispatch({ type: 'SET_RDF_LABELS', payload: result.labels ?? {} })
                 }
             })
     }
@@ -146,6 +148,7 @@ function GraphToolbar() {
         // Handle DOT files directly
         dispatch({ type: 'SET_GRAPH_DOT_TEXT', payload: content })
         dispatch({ type: 'SET_RDF_SUBJECTS', payload: ['DOT_GRAPH'] })
+        dispatch({ type: 'SET_RDF_LABELS', payload: {} })
         dispatch({ type: 'SET_SELECTED_SUBJECTS', payload: ['DOT_GRAPH'] })
       } else {
         // Parse RDF content
@@ -155,6 +158,7 @@ function GraphToolbar() {
         } else {
           dispatch({ type: 'SET_RDF_SUBJECTS', payload: result.subjects })
           dispatch({ type: 'SET_RDF_PREFIXES', payload: result.prefixes })
+          dispatch({ type: 'SET_RDF_LABELS', payload: result.labels ?? {} })
           dispatch({ type: 'SET_GRAPH_ERROR', payload: null })
           
           // Auto-select all subjects for visualization
@@ -167,7 +171,8 @@ function GraphToolbar() {
               result.quads,
               result.subjects.slice(0, 10),
               graph.options,
-              result.prefixes
+              result.prefixes,
+              result.labels ?? {}
             )
             
             if (graphResult.error) {
@@ -356,6 +361,24 @@ function GraphToolbar() {
                   onChange={handleCheckboxChange('hideAnnotations')}
                 />
                 Hide Annotations
+              </label>
+
+              <label title="Show rdfs:label / skos:prefLabel on diagram nodes instead of the IRI">
+                <input
+                  type="checkbox"
+                  checked={graph.options.showNodeLabels}
+                  onChange={handleCheckboxChange('showNodeLabels')}
+                />
+                Node Labels
+              </label>
+
+              <label title="Show rdfs:label / skos:prefLabel on diagram edges instead of the property IRI">
+                <input
+                  type="checkbox"
+                  checked={graph.options.showPredicateLabels}
+                  onChange={handleCheckboxChange('showPredicateLabels')}
+                />
+                Property Labels
               </label>
 
               <label>

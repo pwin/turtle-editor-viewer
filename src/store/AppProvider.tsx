@@ -40,6 +40,9 @@ const initialState: AppState = {
       showSubjects: false,
       rawOutput: false,
       sortSubjects: false,
+      showLabels: true,
+      showNodeLabels: true,
+      showPredicateLabels: true,
     },
     isGenerating: false,
     error: null,
@@ -49,6 +52,7 @@ const initialState: AppState = {
     subjects: [],
     prefixes: {},
     selectedSubjects: [],
+    labels: {},
   },
   sparql: {
     query: 'select * {?s ?p ?o}',
@@ -73,6 +77,7 @@ type AppAction =
   | { type: 'SET_RDF_QUADS'; payload: AppState['rdf']['quads'] }
   | { type: 'SET_RDF_SUBJECTS'; payload: string[] }
   | { type: 'SET_RDF_PREFIXES'; payload: Record<string, string> }
+  | { type: 'SET_RDF_LABELS'; payload: Record<string, string> }
   | { type: 'SET_SELECTED_SUBJECTS'; payload: string[] }
   | { type: 'SET_SPARQL_QUERY'; payload: string }
   | { type: 'SET_SPARQL_RESULTS'; payload: any }
@@ -115,6 +120,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, rdf: { ...state.rdf, subjects: action.payload } }
     case 'SET_RDF_PREFIXES':
       return { ...state, rdf: { ...state.rdf, prefixes: action.payload } }
+    case 'SET_RDF_LABELS':
+      return { ...state, rdf: { ...state.rdf, labels: action.payload } }
     case 'SET_SELECTED_SUBJECTS':
       return { ...state, rdf: { ...state.rdf, selectedSubjects: action.payload } }
     case 'SET_SPARQL_QUERY':

@@ -25,21 +25,23 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
+        // Only list packages that src/ actually imports. Naming a package here
+        // makes Rollup treat it as a chunk entry, which pulls it into the build
+        // even when nothing imports it.
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          rdf: ['rdf-ext', 'n3'],
-          // Editor and viz are large, keep them separate
-          editor: ['monaco-editor', '@monaco-editor/react'],
-          viz: ['@viz-js/viz'],
+          rdf: ['n3'],
+          // monaco-editor itself is loaded from the CDN at runtime by
+          // @monaco-editor/react, so only the wrapper belongs in the bundle.
+          editor: ['@monaco-editor/react'],
           sparql: ['@comunica/query-sparql'],
-          // Split out other large dependencies if needed
-          utils: ['lodash', 'file-saver'],
+          utils: ['file-saver'],
         },
       },
     },
     chunkSizeWarningLimit: 1000, // Increase limit to suppress warnings for large chunks like monaco
   },
   optimizeDeps: {
-    include: ['monaco-editor', '@monaco-editor/react', 'rdf-ext', 'n3', '@viz-js/viz', '@comunica/query-sparql'],
+    include: ['@monaco-editor/react', 'n3', '@comunica/query-sparql'],
   },
 })
