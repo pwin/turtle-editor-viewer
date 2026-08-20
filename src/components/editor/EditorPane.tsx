@@ -88,6 +88,7 @@ function EditorPane() {
         
         if (!result.error) {
           // Update store (subjects/prefixes)
+          dispatch({ type: 'SET_RDF_QUADS', payload: result.quads })
           dispatch({ type: 'SET_RDF_SUBJECTS', payload: result.subjects })
           dispatch({ type: 'SET_RDF_PREFIXES', payload: result.prefixes })
           

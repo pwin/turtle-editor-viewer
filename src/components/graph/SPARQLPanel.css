@@ -65,30 +65,20 @@
   min-height: 0;
 }
 
-.sparql-editor {
-  flex-shrink: 0;
-  padding: 8px 12px;
+.sparql-editor-container {
+  flex: 1 1 auto;
+  min-height: 100px;
+  position: relative;
+  border-bottom: 1px solid #e1e5e9;
 }
 
-.sparql-editor textarea {
+.sparql-editor-container.split-view {
+  flex: none; /* Let Split.js handle the height */
+}
+
+.ace-editor-wrapper {
+  height: 100%;
   width: 100%;
-  background-color: #ffffff;
-  border: 1px solid #ced4da;
-  color: #495057 !important;
-  padding: 8px;
-  border-radius: 3px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 12px;
-  resize: vertical;
-  min-height: 60px;
-  max-height: 120px;
-  box-sizing: border-box;
-}
-
-.sparql-editor textarea:focus {
-  outline: none;
-  border-color: #646cff;
-  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
 }
 
 .sparql-error {
@@ -101,13 +91,20 @@
   flex-shrink: 0;
 }
 
-.sparql-results {
+.sparql-results-container {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  margin: 8px 12px;
-  overflow: hidden;
   min-height: 0;
+  overflow: hidden;
+}
+
+.sparql-results {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 12px;
+  overflow: hidden;
 }
 
 .results-header {
@@ -274,4 +271,22 @@
 
 .cancel-btn:hover {
   background-color: #5a6268 !important;
+}
+
+/* Gutter styles for Split.js */
+.gutter {
+  background-color: #eee;
+  background-repeat: no-repeat;
+  background-position: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.gutter:hover {
+  background-color: #e0e0e0;
+}
+
+.gutter.gutter-vertical {
+  background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUCNdj38CAGQOFBAB0sn9RaU2RTgAAAABJRU5ErkJggg==');
+  cursor: row-resize;
 }

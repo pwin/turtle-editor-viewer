@@ -74,6 +74,7 @@ const initialState: AppState = {
       hideAnnotations: false,
       showSubjects: false,
       rawOutput: false,
+      sortSubjects: false,
     },
     isGenerating: false,
     error: null,

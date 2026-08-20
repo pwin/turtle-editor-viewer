@@ -28,41 +28,41 @@ export class GraphGenerator {
       if (selectedSubjects.length === 0) {
         return {
           dotText: this.generateEmptyGraph(options),
-          error: undefined
+          error: undefined,
         }
       }
 
       // Filter quads to only include selected subjects and recursively included blank nodes
       const relevantQuads = this.collectRelevantQuads(quads, selectedSubjects, options)
-      
+
       // Generate DOT content
       const graphContent = this.generateGraphContent(relevantQuads, options)
-      
+
       // Create legend if needed
       const legend = options.showPrefixes ? this.createLegend() : ''
-      
+
       // Combine into final DOT
       const dotText = `digraph {
   node [shape="box", style="rounded"];
-  rankdir="${options.layoutDirection}"; 
+  rankdir="${options.layoutDirection}";
   ratio="auto";
-  
+
   subgraph RDF {
     ${this.nodeDeclarations.join('\n')}
     ${graphContent}
   }
-  
+
   ${legend}
 }`
 
       return {
         dotText,
-        error: undefined
+        error: undefined,
       }
     } catch (error) {
       return {
         dotText: '',
-        error: `Graph generation error: ${error}`
+        error: `Graph generation error: ${error}`,
       }
     }
   }
@@ -74,7 +74,7 @@ export class GraphGenerator {
     return `digraph {
   node [shape="box", style="rounded"];
   rankdir="${options.layoutDirection}";
-  
+
   empty [label="No subjects selected\\nParse RDF and select subjects to visualize" style="dashed" color="gray"];
 }`
   }
@@ -82,26 +82,90 @@ export class GraphGenerator {
   /**
    * Collect quads recursively including blank nodes
    */
-  private collectRelevantQuads(allQuads: RDFQuad[], selectedSubjects: string[], options: GraphOptions): RDFQuad[] {
-    const expandedSubjects = selectedSubjects.map(subject =>
+  // private collectRelevantQuads(
+  //   allQuads: RDFQuad[],
+  //   selectedSubjects: string[],
+  //   options: GraphOptions
+  // ): RDFQuad[] {
+  //   const expandedSubjects = selectedSubjects.map((subject) =>
+  //     RDFParser.expandIRI(subject, this.prefixes)
+  //   )
+
+  //   const relevantQuads: RDFQuad[] = []
+  //   const seenSubjects = new Set<string>()
+  //   const queue: string[] = [...expandedSubjects, ...selectedSubjects] // Handle both expanded and raw
+
+  //   while (queue.length > 0) {
+  //     const subjectVal = queue.shift()!
+  //     if (seenSubjects.has(subjectVal)) continue
+  //     seenSubjects.add(subjectVal)
+
+  //     // Find matching quads
+  //     const subjectQuads = allQuads.filter((q) => q.subject.value === subjectVal)
+
+  //     subjectQuads.forEach((q) => {
+  //       // Skip rdf:type if hideTypes is enabled
+  //       if (
+  //         options.hideTypes &&
+  //         q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+  //       ) {
+  //         return
+  //       }
+
+  //       // Skip annotations if hideAnnotations is enabled
+  //       if (options.hideAnnotations && this.isAnnotationProperty(q.predicate.value)) {
+  //         return
+  //       }
+
+  //       relevantQuads.push(q)
+
+  //       // If object is BlankNode, add to queue for recursion
+  //       if (q.object.termType === 'BlankNode') {
+  //         if (!seenSubjects.has(q.object.value)) {
+  //           queue.push(q.object.value)
+  //         }
+  //       }
+  //     })
+  //   }
+
+  //   return relevantQuads
+  // }
+
+  /**
+   * Collect quads recursively including blank nodes, with deduplication and safety checks
+   */
+  private collectRelevantQuads(
+    allQuads: RDFQuad[] = [],
+    selectedSubjects: string[],
+    options: GraphOptions
+  ): RDFQuad[] {
+    // Defensive: ensure we always have an array
+    if (!Array.isArray(allQuads)) {
+      throw new Error('collectRelevantQuads called with non-array allQuads')
+    }
+
+    const expandedSubjects = selectedSubjects.map((subject) =>
       RDFParser.expandIRI(subject, this.prefixes)
     )
-    
+
     const relevantQuads: RDFQuad[] = []
     const seenSubjects = new Set<string>()
-    const queue: string[] = [...expandedSubjects, ...selectedSubjects] // Handle both expanded and raw
+    const seenQuads = new Set<string>() // Track unique quads
+    const queue: string[] = [...expandedSubjects, ...selectedSubjects]
 
     while (queue.length > 0) {
       const subjectVal = queue.shift()!
       if (seenSubjects.has(subjectVal)) continue
       seenSubjects.add(subjectVal)
 
-      // Find matching quads
-      const subjectQuads = allQuads.filter(q => q.subject.value === subjectVal)
-      
-      subjectQuads.forEach(q => {
+      const subjectQuads = allQuads.filter((q) => q.subject.value === subjectVal)
+
+      subjectQuads.forEach((q) => {
         // Skip rdf:type if hideTypes is enabled
-        if (options.hideTypes && q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
+        if (
+          options.hideTypes &&
+          q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+        ) {
           return
         }
 
@@ -110,17 +174,21 @@ export class GraphGenerator {
           return
         }
 
-        relevantQuads.push(q)
-        
+        // Build a unique key for deduplication
+        const quadKey = `${q.subject.value}|${q.predicate.value}|${q.object.value}|${q.graph?.value ?? ''}`
+
+        if (!seenQuads.has(quadKey)) {
+          seenQuads.add(quadKey)
+          relevantQuads.push(q)
+        }
+
         // If object is BlankNode, add to queue for recursion
-        if (q.object.termType === 'BlankNode') {
-           if (!seenSubjects.has(q.object.value)) {
-             queue.push(q.object.value)
-           }
+        if (q.object.termType === 'BlankNode' && !seenSubjects.has(q.object.value)) {
+          queue.push(q.object.value)
         }
       })
     }
-    
+
     return relevantQuads
   }
 
@@ -130,41 +198,43 @@ export class GraphGenerator {
   private generateGraphContent(quads: RDFQuad[], options: GraphOptions): string {
     let content = ''
     const seenSubjects = new Set<string>()
-    
+
     // Group quads by subject
     const quadsBySubject = new Map<string, RDFQuad[]>()
-    quads.forEach(q => {
-        if (!quadsBySubject.has(q.subject.value)) {
-            quadsBySubject.set(q.subject.value, [])
-        }
-        quadsBySubject.get(q.subject.value)!.push(q)
+    quads.forEach((q) => {
+      if (!quadsBySubject.has(q.subject.value)) {
+        quadsBySubject.set(q.subject.value, [])
+      }
+      quadsBySubject.get(q.subject.value)!.push(q)
     })
-    
+
     // Iterate over subjects
     for (const [subject, subjectQuads] of quadsBySubject) {
-        if (seenSubjects.has(subject)) continue
-        seenSubjects.add(subject)
-        
-        if (this.isListNode(subjectQuads)) {
-             const listResult = this.renderList(quads, subjectQuads[0].subject, options)
-             content += listResult.content
-             
-             // Mark list nodes as seen to avoid double rendering
-             listResult.processedQuads.forEach(q => seenSubjects.add(q.subject.value))
-        } else {
-             subjectQuads.forEach(q => {
-                 // Skip rdf:type if hideTypes is enabled
-                 if (options.hideTypes &&
-                     q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') {
-                   return
-                 }
-                 // Skip annotations if hideAnnotations is enabled
-                 if (options.hideAnnotations && this.isAnnotationProperty(q.predicate.value)) {
-                   return
-                 }
-                 content += this.generateQuadStatement(q, options)
-             })
-        }
+      if (seenSubjects.has(subject)) continue
+      seenSubjects.add(subject)
+
+      if (this.isListNode(subjectQuads)) {
+        const listResult = this.renderList(quads, subjectQuads[0].subject, options)
+        content += listResult.content
+
+        // Mark list nodes as seen to avoid double rendering
+        listResult.processedQuads.forEach((q) => seenSubjects.add(q.subject.value))
+      } else {
+        subjectQuads.forEach((q) => {
+          // Skip rdf:type if hideTypes is enabled
+          if (
+            options.hideTypes &&
+            q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+          ) {
+            return
+          }
+          // Skip annotations if hideAnnotations is enabled
+          if (options.hideAnnotations && this.isAnnotationProperty(q.predicate.value)) {
+            return
+          }
+          content += this.generateQuadStatement(q, options)
+        })
+      }
     }
 
     return content
@@ -206,7 +276,8 @@ export class GraphGenerator {
 
     // Add click handler for subjects if enabled
     if (options.showSubjects) {
-      attributes.push(`URL="javascript:findTriplesForObject('${term.value}')"`)
+      const safeValue = term.value.replace(/'/g, "\\'")
+      attributes.push(`URL="javascript:findTriplesForObject('${safeValue}')"`)
     }
 
     if (attributes.length > 0) {
@@ -222,17 +293,20 @@ export class GraphGenerator {
   private isListNode(quads: RDFQuad[]): boolean {
     const listPredicates = new Set([
       'http://www.w3.org/1999/02/22-rdf-syntax-ns#first',
-      'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+      'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest',
     ])
-    
-    return quads.length === 2 && 
-           quads.every(quad => listPredicates.has(quad.predicate.value))
+
+    return quads.length === 2 && quads.every((quad) => listPredicates.has(quad.predicate.value))
   }
 
   /**
    * Render RDF list structure
    */
-  private renderList(allQuads: RDFQuad[], head: any, options: GraphOptions): {
+  private renderList(
+    allQuads: RDFQuad[],
+    head: any,
+    options: GraphOptions
+  ): {
     content: string
     processedQuads: RDFQuad[]
   } {
@@ -242,17 +316,15 @@ export class GraphGenerator {
 
     // Traverse the list
     while (current) {
-      const statements = allQuads.filter(q => 
-        q.subject.value === current.value
-      )
+      const statements = allQuads.filter((q) => q.subject.value === current.value)
 
       if (statements.length === 0) break
 
-      const firstQuad = statements.find(q => 
-        q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
+      const firstQuad = statements.find(
+        (q) => q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#first'
       )
-      const restQuad = statements.find(q => 
-        q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
+      const restQuad = statements.find(
+        (q) => q.predicate.value === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'
       )
 
       if (firstQuad) {
@@ -273,11 +345,11 @@ export class GraphGenerator {
 
     // Generate list visualization
     const listRef = this.declareTerm(head, options)
-    const memberRefs = listMembers.map(member => this.declareTerm(member, options))
-    
+    const memberRefs = listMembers.map((member) => this.declareTerm(member, options))
+
     const ports = memberRefs.map((_, i) => `<p${i}>`).join('|')
     let content = `  "${listRef}" [shape=record, label="${ports}"];\n`
-    
+
     memberRefs.forEach((memberRef, i) => {
       content += `  "${listRef}":p${i} -> "${memberRef}";\n`
     })
@@ -296,11 +368,11 @@ export class GraphGenerator {
     let legend = 'subgraph legend {\n'
     legend += '  rankdir="TD" rank="min"\n'
     legend += '  LEGEND [shape="box" style="dashed" margin=0 label="'
-    
+
     Object.entries(this.prefixes).forEach(([prefix, namespace]) => {
       legend += `${prefix}: ${namespace}\\l`
     })
-    
+
     legend += '"];\n'
     legend += '}\n'
 
@@ -326,7 +398,7 @@ export class GraphGenerator {
    */
   private wordWrap(text: string, maxWidth: number = 50): string {
     if (text.length <= maxWidth) return text
-    
+
     const words = text.split(' ')
     const lines: string[] = []
     let currentLine = ''
@@ -339,7 +411,7 @@ export class GraphGenerator {
         currentLine = word
       }
     }
-    
+
     if (currentLine) lines.push(currentLine)
     return lines.join('\\l')
   }
@@ -351,18 +423,15 @@ export class GraphGenerator {
     // For DOT files, we can pass them through with minimal processing
     // Just ensure the layout direction matches options
     let dotText = content
-    
+
     // Update rankdir if needed
     if (options.layoutDirection !== 'LR') {
-      dotText = dotText.replace(
-        /rankdir\s*=\s*"[^"]*"/g, 
-        `rankdir="${options.layoutDirection}"`
-      )
+      dotText = dotText.replace(/rankdir\s*=\s*"[^"]*"/g, `rankdir="${options.layoutDirection}"`)
     }
-    
+
     return {
       dotText,
-      error: undefined
+      error: undefined,
     }
   }
 
@@ -384,7 +453,7 @@ export class GraphGenerator {
       'http://www.w3.org/2004/02/skos/core#editorialNote',
       'http://www.w3.org/2004/02/skos/core#example',
       'http://www.w3.org/2004/02/skos/core#historyNote',
-      'http://www.w3.org/2004/02/skos/core#scopeNote'
+      'http://www.w3.org/2004/02/skos/core#scopeNote',
     ]
     return annotationProperties.includes(predicate)
   }

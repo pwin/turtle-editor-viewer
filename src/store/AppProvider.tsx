@@ -39,6 +39,7 @@ const initialState: AppState = {
       hideAnnotations: false,
       showSubjects: false,
       rawOutput: false,
+      sortSubjects: false,
     },
     isGenerating: false,
     error: null,
@@ -69,6 +70,7 @@ type AppAction =
   | { type: 'SET_GRAPH_GENERATING'; payload: boolean }
   | { type: 'SET_GRAPH_ERROR'; payload: string | null }
   | { type: 'SET_GRAPH_OPTIONS'; payload: Partial<AppState['graph']['options']> }
+  | { type: 'SET_RDF_QUADS'; payload: AppState['rdf']['quads'] }
   | { type: 'SET_RDF_SUBJECTS'; payload: string[] }
   | { type: 'SET_RDF_PREFIXES'; payload: Record<string, string> }
   | { type: 'SET_SELECTED_SUBJECTS'; payload: string[] }
@@ -107,6 +109,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
           options: { ...state.graph.options, ...action.payload }
         }
       }
+    case 'SET_RDF_QUADS':
+      return { ...state, rdf: { ...state.rdf, quads: action.payload } }
     case 'SET_RDF_SUBJECTS':
       return { ...state, rdf: { ...state.rdf, subjects: action.payload } }
     case 'SET_RDF_PREFIXES':

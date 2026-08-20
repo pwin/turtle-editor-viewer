@@ -54,6 +54,7 @@ You can customize how the graph is rendered using the toolbar controls in the Gr
     *   `Hide Types`: Hides `rdf:type` relationships to declutter the graph.
     *   `Hide Annotations`: Hides common annotation properties (labels, comments, notes) to focus on structural relationships.
     *   `Subjects`: Toggle visibility of subject nodes.
+    *   `Sort Subjects`: Toggle whether to sort subjects alphabetically in the graph (unchecked by default to preserve order of appearance).
 
 ### Interaction
 -   **Pan & Zoom**: Use your mouse wheel to zoom in/out and click-and-drag to pan around the graph.
