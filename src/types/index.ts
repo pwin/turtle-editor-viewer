@@ -64,6 +64,12 @@ export interface GraphOptions {
   showSubjects: boolean
   rawOutput: boolean
   sortSubjects: boolean
+  /** Show rdfs:label / skos:prefLabel instead of the raw IRI in the subject picker. */
+  showLabels: boolean
+  /** Same, for the node boxes in the rendered diagram. */
+  showNodeLabels: boolean
+  /** Same, for the property names on the diagram's edges. */
+  showPredicateLabels: boolean
 }
 
 export interface GraphState {
@@ -80,6 +86,8 @@ export interface RDFStore {
   subjects: string[]
   prefixes: Record<string, string>
   selectedSubjects: string[]
+  /** Subject key -> human-readable label, for subjects that have one. */
+  labels: Record<string, string>
 }
 
 // SPARQL Types

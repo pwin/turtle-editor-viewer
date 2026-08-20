@@ -1,6 +1,12 @@
 import { useEffect } from 'react'
-import Editor, { useMonaco, OnChange, OnMount } from '@monaco-editor/react'
+import Editor, { loader, useMonaco, OnChange, OnMount } from '@monaco-editor/react'
 import type { EditorLanguage, EditorTheme } from '@/types'
+
+// Serve Monaco from our own origin rather than @monaco-editor/react's default
+// jsdelivr CDN. Resolved against document.baseURI so it keeps working when the
+// app is deployed under a sub-path. The files are placed in public/monaco/vs by
+// scripts/setup-monaco.mjs, which runs from the predev/prebuild npm hooks.
+loader.config({ paths: { vs: new URL('monaco/vs', document.baseURI).href } })
 
 interface MonacoEditorComponentProps {
   value: string

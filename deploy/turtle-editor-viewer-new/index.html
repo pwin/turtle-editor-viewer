@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Moved — Turtle Editor Viewer</title>
+
+    <!-- Keep this stub out of search results, and point crawlers at the real page. -->
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href="https://semantechs.co.uk/turtle-editor-viewer/" />
+
+    <!--
+      Redirect runs in three layers, most capable first:
+        1. the script below (immediate, preserves ?query and #hash)
+        2. the meta refresh (fires if scripting is off)
+        3. the visible link in the body (if both are blocked)
+      The target is relative, so this keeps working on staging or a different host.
+    -->
+    <script>
+      (function () {
+        var target = new URL('../turtle-editor-viewer/', location.href)
+        target.search = location.search
+        target.hash = location.hash
+        // replace() rather than assign() so Back doesn't bounce off this stub.
+        location.replace(target.href)
+      })()
+    </script>
+    <meta http-equiv="refresh" content="0; url=../turtle-editor-viewer/" />
+
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: #2c3e50;
+        background: #fff;
+      }
+      main { text-align: center; padding: 2rem; }
+      h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem; }
+      p { margin: 0; color: #5a6b7b; }
+      a { color: #2b6cb0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>This page has moved</h1>
+      <p>
+        Turtle Editor Viewer now lives at
+        <a href="../turtle-editor-viewer/">/turtle-editor-viewer/</a>.
+      </p>
+    </main>
+  </body>
+</html>

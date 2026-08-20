@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAppContext } from '@/store/AppProvider'
 import { GraphGenerator } from '@/services/graph-generator'
 import { RDFParser } from '@/services/rdf-parser'
+import { buildSubjectOptions } from '@/utils/label-utils'
 import type { EditorLanguage, EditorTheme } from '@/types'
 import './EditorToolbar.css'
 
@@ -12,8 +13,18 @@ function EditorToolbar() {
 
   const isDotMode = state.editor.language === 'dot'
 
-  const filteredSubjects = rdf.subjects.filter(subject =>
-    subject.toLowerCase().includes(subjectFilter.toLowerCase())
+  const subjectOptions = buildSubjectOptions(
+    rdf.subjects,
+    rdf.labels,
+    graph.options.showLabels,
+  )
+
+  // Match on the displayed text as well as the IRI, so either one finds it.
+  const filter = subjectFilter.toLowerCase()
+  const filteredSubjects = subjectOptions.filter(
+    option =>
+      option.display.toLowerCase().includes(filter) ||
+      option.value.toLowerCase().includes(filter),
   )
 
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -93,7 +104,8 @@ function EditorToolbar() {
             result.quads,
             selectedSubjects,
             options,
-            result.prefixes
+            result.prefixes,
+            result.labels ?? {}
           )
           
           if (graphResult.error) {
@@ -183,6 +195,20 @@ function EditorToolbar() {
               onChange={(e) => setSubjectFilter(e.target.value)}
               className="subject-filter"
             />
+
+            <label className="subject-label-toggle">
+              <input
+                type="checkbox"
+                checked={graph.options.showLabels}
+                onChange={e =>
+                  dispatch({
+                    type: 'SET_GRAPH_OPTIONS',
+                    payload: { showLabels: e.target.checked },
+                  })
+                }
+              />
+              Show labels
+            </label>
            
             <select
               multiple
@@ -191,9 +217,11 @@ function EditorToolbar() {
               onChange={handleSubjectSelectionChange}
               className="subjects-list"
             >
-              {filteredSubjects.map((subject: string) => (
-                <option key={subject} value={subject}>
-                  {subject}
+              {filteredSubjects.map(option => (
+                // value stays the IRI: it is what selection and graph
+                // generation key off, and it is always unique.
+                <option key={option.value} value={option.value} title={option.value}>
+                  {option.display}
                 </option>
               ))}
             </select>

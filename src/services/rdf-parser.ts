@@ -1,11 +1,13 @@
 // import type { RDFQuad, RDFPrefix, NamedNode, BlankNode, Literal } from '@/types'
-import type { RDFQuad} from '@/types'
+import type { RDFQuad } from '@/types'
+import { extractLabels } from '@/utils/label-utils'
 
 export interface RDFParseResult {
   quads: RDFQuad[]
   prefixes: Record<string, string>
   subjects: string[]
   error?: string
+  labels?: Record<string, string>
 }
 
 export class RDFParser {
@@ -77,7 +79,8 @@ export class RDFParser {
             resolve({
               quads: this.quads,
               prefixes: this.prefixes,
-              subjects
+              subjects,
+              labels: extractLabels(this.quads, this.subjectKey)
             })
           }
         })
@@ -119,7 +122,8 @@ export class RDFParser {
           resolve({
             quads: this.quads,
             prefixes: this.prefixes,
-            subjects
+            subjects,
+            labels: extractLabels(this.quads, this.subjectKey)
           })
         })
         
@@ -161,7 +165,8 @@ export class RDFParser {
           resolve({
             quads: this.quads,
             prefixes: this.prefixes,
-            subjects
+            subjects,
+            labels: extractLabels(this.quads, this.subjectKey)
           })
         })
         
@@ -300,6 +305,15 @@ export class RDFParser {
       throw new Error(`Serialization error: ${error}`)
     }
   }
+
+  /**
+   * Key a subject the same way extractSubjects does, so labels join up with
+   * the subject list: prefixed IRI for named nodes, raw id for blank nodes.
+   */
+  private subjectKey = (subject: RDFQuad['subject']): string =>
+    subject.termType === 'NamedNode'
+      ? RDFParser.shrinkIRI(subject.value, this.prefixes)
+      : subject.value
 
   /**
    * Extract unique subjects from quads

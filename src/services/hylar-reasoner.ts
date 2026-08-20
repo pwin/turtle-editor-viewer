@@ -122,7 +122,7 @@ export class HylarReasoner {
       case 'BlankNode':
         return `_:${term.value}`
       
-      case 'Literal':
+      case 'Literal': {
         let literal = `"${this.escapeLiteral(term.value)}"`
         
         if (term.language) {
@@ -132,6 +132,7 @@ export class HylarReasoner {
         }
         
         return literal
+      }
       
       default:
         return `<${term.value || term}>`

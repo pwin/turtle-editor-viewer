@@ -1,6 +1,4 @@
 import { useState, useCallback } from 'react';
-// @ts-ignore
-// import { QueryEngine } from '@comunica/query-sparql';
 import { Store, Quad } from 'n3';
 
 export interface SparqlResult {
