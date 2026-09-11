@@ -1,0 +1,58 @@
+.editor-tabs {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  overflow-x: auto;
+  background-color: #e9ecef;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid #e1e5e9;
+  background-color: #e9ecef;
+}
+
+.editor-tab.active {
+  background-color: #f8f9fa;
+  /* Merge visually with the toolbar directly below. */
+  margin-bottom: -1px;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.editor-tab-select {
+  background: none;
+  border: none;
+  padding: 6px 4px 6px 12px;
+  font-size: 12px;
+  color: #6c757d;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-tab.active .editor-tab-select {
+  color: #212529;
+  font-weight: 600;
+}
+
+.editor-tab-select:hover {
+  color: #212529;
+}
+
+.editor-tab-close {
+  background: none;
+  border: none;
+  padding: 4px 8px 4px 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: #adb5bd;
+  cursor: pointer;
+}
+
+.editor-tab-close:hover {
+  color: #dc3545;
+}

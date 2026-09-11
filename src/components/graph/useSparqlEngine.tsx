@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react';
-import { Store, Quad } from 'n3';
+import { Store } from 'n3';
+import type { RDFQuad } from '@/types';
+import { quadsToTurtle, termToResult, type ResultRow } from '@/utils/sparql-results';
 
 export interface SparqlResult {
   head?: { vars: string[] };
-  results?: { bindings: Array<Record<string, { type: string; value: string }>> };
+  results?: { bindings: ResultRow[] };
   rdfResult?: string;
   booleanResult?: boolean;
 }
@@ -13,7 +15,7 @@ export function useSparqlEngine() {
   const [error, setError] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
 
-  const executeQuery = useCallback(async (query: string, quads: Quad[]) => {
+  const executeQuery = useCallback(async (query: string, quads: RDFQuad[], prefixes: Record<string, string> = {}) => {
     setIsExecuting(true);
     setError(null);
     try {
@@ -97,26 +99,15 @@ export function useSparqlEngine() {
         
         const bindings = await bindingsStream.toArray();
         
-        const formattedBindings = bindings.map((binding: any) => {
-          const row: any = {};
+        // Encode each binding per the SPARQL 1.2 results JSON format. This
+        // handles every term kind the engine can return, including triple
+        // terms and literals with a text direction, which a NamedNode /
+        // BlankNode / "everything else is a literal" split would misreport.
+        const formattedBindings: ResultRow[] = bindings.map((binding: any) => {
+          const row: ResultRow = {};
           vars.forEach((v: string) => {
             const term = binding.get(v);
-            if (term) {
-              row[v] = {
-                type: term.termType === 'NamedNode' ? 'uri' :
-                      term.termType === 'BlankNode' ? 'bnode' : 'literal',
-                value: term.value
-              };
-              
-              if (term.termType === 'Literal') {
-                if (term.language) {
-                  row[v]['xml:lang'] = term.language;
-                }
-                if (term.datatype && term.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
-                  row[v].datatype = term.datatype.value;
-                }
-              }
-            }
+            if (term) row[v] = termToResult(term);
           });
           return row;
         });
@@ -130,20 +121,9 @@ export function useSparqlEngine() {
         return resultObj;
       } else if (result.resultType === 'quads') {
         const quadStream = await result.execute();
-        
-        // Serialize to Turtle using stream
-        const { Writer } = await import('n3');
-        const writer = new Writer({ format: 'Turtle' });
-        
-        const rdfString = await new Promise<string>((resolve, reject) => {
-            quadStream.on('data', (quad: Quad) => writer.addQuad(quad));
-            quadStream.on('end', () => {
-                writer.end((err, res) => err ? reject(err) : resolve(res));
-            });
-            quadStream.on('error', reject);
-        });
+        const constructed: RDFQuad[] = await quadStream.toArray();
 
-        const resultObj = { rdfResult: rdfString };
+        const resultObj = { rdfResult: await quadsToTurtle(constructed, prefixes) };
         setResults(resultObj as any);
         return resultObj;
       } else if (result.resultType === 'boolean') {

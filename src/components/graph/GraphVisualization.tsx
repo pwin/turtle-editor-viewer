@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { useAppContext } from '@/store/AppProvider'
+import { escapeHtml } from '@/utils/html'
 import './GraphVisualization.css'
 
 // Declare global functions
@@ -88,7 +89,7 @@ function GraphVisualization() {
                 <p><strong>Viz.js not loaded</strong></p>
                 <p>Ensure the viz.js script is included in index.html</p>
                 <p>DOT Content:</p>
-                <pre style="text-align: left; max-height: 300px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">${graph.dotText}</pre>
+                <pre style="text-align: left; max-height: 300px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(graph.dotText)}</pre>
               </div>
             `
           }
@@ -185,7 +186,7 @@ function GraphVisualization() {
                     console.error('PNG conversion error:', err);
                     // Fallback or error display
                     if (containerRef.current) {
-                       containerRef.current.innerHTML = `<div class="graph-error"><p>PNG Conversion Error: ${err}</p></div>`;
+                       containerRef.current.innerHTML = `<div class="graph-error"><p>PNG Conversion Error: ${escapeHtml(String(err))}</p></div>`;
                     }
                     return;
                   }
@@ -215,17 +216,18 @@ function GraphVisualization() {
               containerRef.current.innerHTML = `
                 <div class="graph-error">
                   <p><strong>PNG Rendering Failed</strong></p>
-                  <pre>${String(error)}</pre>
+                  <pre>${escapeHtml(String(error))}</pre>
                   <p>Try switching to SVG format instead.</p>
                 </div>
               `
             }
           } else {
-            // For other formats, display as text
+            // For other formats, display as text. Graphviz's plain/xdot/json
+            // output carries label text verbatim, so it must be escaped.
             containerRef.current.innerHTML = `
               <div class="graph-placeholder">
                 <p>Format: ${graph.options.format.toUpperCase()}</p>
-                <pre style="max-height: 400px; overflow: auto; text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${result}</pre>
+                <pre style="max-height: 400px; overflow: auto; text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(result)}</pre>
               </div>
             `
           }
@@ -236,10 +238,10 @@ function GraphVisualization() {
           containerRef.current.innerHTML = `
             <div class="graph-error">
               <p><strong>Graph Rendering Error</strong></p>
-              <pre>${String(error)}</pre>
+              <pre>${escapeHtml(String(error))}</pre>
               <details>
                 <summary>DOT Content (click to expand)</summary>
-                <pre style="text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${graph.dotText}</pre>
+                <pre style="text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(graph.dotText)}</pre>
               </details>
             </div>
           `
@@ -320,7 +322,10 @@ function GraphVisualization() {
   const lastClickTime = useRef(0)
 
   const handleClick = (e: React.MouseEvent) => {
-    // Only for SVG format
+    // Only for SVG format, and only when the Subjects option is on. This is
+    // the sole click behaviour: nodes carry no href, so the lookup runs from
+    // the node's <title> text, which Graphviz escapes and we never execute.
+    if (!graph.options.showSubjects) return
     if (graph.options.format !== 'svg' || graph.options.rawOutput) return
 
     // Prevent double execution from bubbling or rapid clicks (300ms debounce)
@@ -432,7 +437,7 @@ function GraphVisualization() {
     <div className="graph-visualization-container">
       <div
         ref={containerRef}
-        className="graph-content-area"
+        className={`graph-content-area${graph.options.showSubjects ? ' clickable-nodes' : ''}`}
         style={{ overflow: 'auto', height: '100%', width: '100%' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

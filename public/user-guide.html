@@ -71,131 +71,177 @@
 <body>
     <div class="container">
         <h1><img src="images/semantechsLogo.jpeg" alt="Semantechs Logo" class="logo" /> User Guide</h1>
-        
-        <p>Welcome to the <strong>Turtle Editor Viewer</strong>, a modern tool for editing RDF data, visualizing graphs, and executing SPARQL queries. This guide covers the key features and how to use them effectively.</p>
-        
+
+        <p>Welcome to the <strong>Turtle Editor Viewer</strong>. It's a place to write or load RDF, see it drawn as a diagram, and ask it questions with SPARQL. Everything runs in your browser, so nothing you paste in leaves your machine. It understands RDF 1.2 and SPARQL 1.2, with a few gaps listed in <a href="#rdf-1-2">section 5</a>. This guide walks through what's on the screen and what each part does.</p>
+
         <h2>1. Getting Started</h2>
-        
-        <h3>Interface Overview</h3>
-        <p>The application interface is divided into two main resizable panes:</p>
+
+        <h3>What you're looking at</h3>
+        <p>The window is split into two panes, and you can drag the bar between them to change their widths:</p>
         <ul>
-            <li><strong>Editor Pane</strong> (Left): A robust code editor for writing and loading RDF data. This pane also includes the <strong>Subjects</strong> selection and filtering tools.</li>
-            <li><strong>Graph & SPARQL Pane</strong> (Right): Contains the visual graph representation of your data and the SPARQL query interface.</li>
+            <li><strong>Editor pane</strong> (left): where your data lives. There's a code editor, a toolbar above it, and a list of the subjects found in your data so you can pick which ones to draw.</li>
+            <li><strong>Graph and SPARQL pane</strong> (right): the diagram at the top, the SPARQL panel underneath. Drag the bar between those two to give one more room.</li>
         </ul>
-        <p>You can adjust the width of the panes by dragging the vertical separator between them. The Graph pane is further split horizontally between the visualization area and the SPARQL panel.</p>
-        
+        <p>Once you've run a query that returns a graph, the editor pane grows a row of tabs along the top. More on that in a moment.</p>
+
         <h2>2. Working with Data (Editor Pane)</h2>
-        <p>The Editor Pane allows you to input, modify, and manage your RDF data.</p>
-        
-        <h3>Loading Data</h3>
-        <p>There are three ways to load data into the editor:</p>
+
+        <h3>Getting data in</h3>
+        <p>Three ways, take your pick:</p>
         <ol>
-            <li><strong>Direct Input</strong>: Simply type or paste your code into the editor.</li>
-            <li><strong>Open File</strong>: Click the <code>Choose File</code> button in the toolbar to load a local file. Supported formats include:
-                <ul>
-                    <li>Turtle (<code>.ttl</code>)</li>
-                    <li>RDF/XML (<code>.rdf</code>, <code>.xml</code>)</li>
-                    <li>JSON-LD (<code>.json</code>, <code>.jsonld</code>)</li>
-                    <li>DOT (<code>.dot</code>)</li>
-                </ul>
-            </li>
-            <li><strong>Load from URL</strong>: In the Graph Toolbar (right pane), enter a URL and click <code>Load URL</code>. <em>Note: The server hosting the file must support CORS.</em></li>
+            <li><strong>Type or paste</strong> straight into the editor.</li>
+            <li><strong>Open File</strong> in the toolbar opens a file from your computer. Turtle (<code>.ttl</code>), RDF/XML (<code>.rdf</code>, <code>.xml</code>), JSON-LD (<code>.json</code>, <code>.jsonld</code>) and Graphviz DOT (<code>.dot</code>) all work, and the tab takes the file's name.</li>
+            <li><strong>Load URL</strong> in the Graph toolbar (right pane) fetches a file from the web. The server hosting it has to allow cross-origin requests (CORS), which most public data servers and GitHub raw links do.</li>
         </ol>
-        
-        <h3>Editor Settings</h3>
-        <p>The toolbar at the top of the editor provides several customization options:</p>
+        <p>You can also put the URL straight into the page address so a link opens ready-loaded; see <a href="#url-parameters">URL parameters</a> at the end.</p>
+        <p>The editor works out the format from the content as you type, so you don't usually need to tell it. If it guesses wrong, the <strong>Language</strong> dropdown sets it by hand.</p>
+
+        <h3>Tabs</h3>
+        <p>The editor can hold several documents at once, each in its own tab:</p>
         <ul>
-            <li><strong>Language</strong>: Manually set the syntax highlighting (Turtle, RDF/XML, JSON-LD, DOT). The editor usually auto-detects this based on content.</li>
-            <li><strong>Theme</strong>: Choose your preferred color scheme (Cobalt, Dawn, Eclipse, GitHub).</li>
+            <li><strong>Source</strong> is the tab you start in. It holds whatever you typed, opened or loaded.</li>
+            <li><strong>Result 1</strong>, <strong>Result 2</strong> and so on appear when a <code>CONSTRUCT</code> or <code>DESCRIBE</code> query returns a graph (see <a href="#graph-results">Graph results</a>). They're ordinary documents: edit them, save them, query them, draw them.</li>
         </ul>
-        
-        <h3>Saving Data</h3>
-        <p>To save your current work, click the <code>Save File</code> button. This will download the current editor content as a file (defaulting to <code>turtle-file.ttl</code>) to your computer.</p>
-        
+        <p>Each tab remembers its own text, its own language and its own choice of subjects for the diagram, so flicking between tabs brings each diagram straight back. The tab strip only shows up when there's more than one tab. Close a tab with its <strong>×</strong>; you can close any tab, including Source, except the last one standing. Closing a tab never touches what's in the others.</p>
+        <p>Two things to keep in mind:</p>
+        <ul>
+            <li>The subject list, the diagram and the SPARQL panel all work on <strong>whichever tab is in front</strong>. Run a query while a Result tab is showing and you're querying that result.</li>
+            <li>Undo history is per tab too, so Ctrl+Z in one tab won't unpick edits in another.</li>
+        </ul>
+
+        <h3>Editor settings</h3>
+        <p>The toolbar above the editor has:</p>
+        <ul>
+            <li><strong>Language</strong>: Turtle, RDF/XML, JSON-LD or DOT. Normally picked for you.</li>
+            <li><strong>Theme</strong>: Light, Dark or High Contrast.</li>
+            <li><strong>Font Size</strong>: 8 to 16 px.</li>
+        </ul>
+
+        <h3>Saving</h3>
+        <p><strong>Save File</strong> downloads the current tab's text (as <code>turtle-file.ttl</code>, so rename it once it lands).</p>
+
         <h2>3. Visualizing Graphs</h2>
-        <p>The Graph Pane automatically visualizes the relationships defined in your RDF data using Graphviz.</p>
-        
-        <h3>Generating a Graph</h3>
+        <p>The diagram is drawn with Graphviz from the subjects you pick.</p>
+
+        <h3>Choosing what to draw</h3>
         <ol>
-            <li><strong>Automatic Detection</strong>: As you type, the application parses your code. If valid RDF is detected, it identifies "Subjects" (resources that have properties).</li>
-            <li><strong>Subject Selection</strong>:
-                <ul>
-                    <li><strong>Specific Subjects</strong>: In the <strong>Editor Toolbar</strong> (top right of the left pane), use the <strong>Subjects</strong> dropdown to select one or more subjects to visualize.</li>
-                    <li><strong>Search Filter</strong>: Use the filter box above the subjects dropdown to quickly find specific resources by name.</li>
-                    <li><strong>Get All</strong>: Click the <code>Get All</code> button in the Graph Toolbar (right pane) to visualize the entire dataset (limited to the first 10 subjects by default for performance). <em>Note: When loading a new file, the first 10 subjects are automatically selected.</em></li>
-                </ul>
-            </li>
+            <li>As you type, the app reads your data and lists every <strong>subject</strong> it finds (anything that has properties) in the box on the right of the editor toolbar.</li>
+            <li>Click subjects in that list to draw them; Ctrl-click or Shift-click to pick several. The diagram follows the selection.</li>
+            <li>Type in the <strong>Filter subjects</strong> box to narrow the list. It matches on the label as well as the IRI, so either will find it.</li>
+            <li><strong>Get All</strong> in the Graph toolbar draws the first ten subjects. When you load a new file the first ten are picked for you as well, so there's something to look at straight away.</li>
         </ol>
-        
-        <h3>Customization Options</h3>
-        <p>You can customize how the graph is rendered using the toolbar controls in the Graph Pane:</p>
+        <p><strong>Show labels</strong>, next to the filter box, swaps IRIs for names. If a subject has an <code>rdfs:label</code> or <code>skos:prefLabel</code>, the list shows that instead of <code>ex:shop-0042</code>. Where two subjects share a name the IRI is added after it so you can still tell them apart, and hovering over any entry shows its full IRI.</p>
+        <p>Blank nodes show up too, when they're the top of a structure rather than nested inside another subject. Ones with a label in the file (<code>_:g_00</code>) are listed under that label; anonymous ones (<code>[] a owl:AllDisjointClasses</code>) are numbered <code>anon-0</code>, <code>anon-1</code>… in the order they appear. Those names stay put while you edit, so a blank node you've picked stays drawn.</p>
+
+        <h3>Options</h3>
+        <p>The Graph toolbar lets you change how the diagram is laid out and drawn:</p>
         <ul>
-            <li><strong>Engine</strong>: Change the Graphviz layout algorithm (e.g., <code>dot</code> for hierarchies, <code>neato</code> for force-directed, <code>circo</code> for circular layouts).</li>
-            <li><strong>Format</strong>: Select the output format (<code>SVG</code> is recommended for interactivity, <code>PNG</code> for static images, <code>JSON</code>/<code>XDOT</code> for raw data).</li>
-            <li><strong>Layout</strong>: Change the direction of the graph (e.g., Left-to-Right <code>LR</code>, Top-to-Bottom <code>TB</code>).</li>
-            <li><strong>Display Toggles</strong>:
-                <ul>
-                    <li><code>Prefixes</code>: Toggle shortened namespace prefixes (e.g., <code>rdf:type</code> vs full IRIs).</li>
-                    <li><code>Hide Types</code>: Hides <code>rdf:type</code> relationships to declutter the graph.</li>
-                    <li><code>Hide Annotations</code>: Hides common annotation properties (labels, comments, notes) to focus on structural relationships.</li>
-                    <li><code>Subjects</code>: Toggle visibility of subject nodes.</li>
-                    <li><code>Sort Subjects</code>: Toggle whether to sort subjects alphabetically in the graph (unchecked by default to preserve order of appearance).</li>
-                </ul>
-            </li>
+            <li><strong>Engine</strong>: which Graphviz layout to use. <code>Dot</code> gives tidy hierarchies, <code>Neato</code> and <code>FDP</code> are force-directed, <code>Circo</code> and <code>Twopi</code> are circular, <code>Osage</code> clusters.</li>
+            <li><strong>Format</strong>: <code>SVG</code> is the one to use day to day; it's what you can pan and zoom. <code>PNG</code> gives a picture, and <code>JSON</code>, <code>XDOT</code>, <code>Plain</code> and <code>PS</code> are the raw Graphviz outputs.</li>
+            <li><strong>Layout</strong>: the direction the diagram flows: Left → Right, Top → Bottom, and their reverses.</li>
+            <li><strong>Prefixes</strong>: show shortened names like <code>rdf:type</code> instead of full IRIs.</li>
+            <li><strong>Hide Types</strong>: leave out <code>rdf:type</code> arrows to cut the clutter.</li>
+            <li><strong>Hide Annotations</strong>: leave out labels, comments and the like, so you see structure rather than description.</li>
+            <li><strong>Subjects</strong>: makes the nodes clickable. Click one and a pop-up lists every subject that points at it. On by default; untick it if the pop-ups get in the way while you pan.</li>
+            <li><strong>Sort Subjects</strong>: list subjects alphabetically rather than in the order they appear in the file.</li>
+            <li><strong>Node Labels</strong> and <strong>Property Labels</strong>: use <code>rdfs:label</code>/<code>skos:prefLabel</code> names in the diagram, for the boxes and for the arrows respectively, the same way <strong>Show labels</strong> does for the subject list. Both are on by default. Turn them off to see the raw IRIs.</li>
+            <li><strong>Link Triple Terms</strong>: see the next section.</li>
+            <li><strong>Raw</strong>: for SVG, show the SVG text itself rather than the picture. Useful if you want to copy it somewhere.</li>
         </ul>
-        
-        <h3>Interaction</h3>
+
+        <h3>RDF 1.2: triple terms and annotations</h3>
+        <p>RDF 1.2 lets a triple be talked <em>about</em>. In Turtle that looks like <code>&lt;&lt;( :shop :founded "1921" )&gt;&gt;</code> when you refer to the triple directly, or <code>:shop :founded "1921" {| :claimedBy :source |}</code> when you attach notes to it as you write it. Under the hood both use <code>rdf:reifies</code> and a triple term.</p>
+        <p>The diagram draws each triple term as its own node, in <strong>dark green</strong>, showing the triple it stands for. Blank nodes look just as they always have.</p>
+        <p>Tick <strong>Link Triple Terms</strong> and each green node also gets dashed dark-green arrows to the subject and the object it mentions, labelled <code>subject</code> and <code>object</code>, wherever those happen to be in the diagram. They don't affect the layout, so switching them on won't rearrange anything.</p>
+
+        <h3>Getting around</h3>
         <ul>
-            <li><strong>Pan & Zoom</strong>: Use your mouse wheel to zoom in/out and click-and-drag to pan around the graph.</li>
-            <li><strong>Context Menu</strong>: Right-click on a node to see more details or perform specific actions (depending on the node type).</li>
+            <li><strong>Pan and zoom</strong>: scroll to zoom, drag to pan (SVG only).</li>
+            <li><strong>Click a node</strong> and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value. (That's the <strong>Subjects</strong> option; untick it to turn the pop-ups off.)</li>
         </ul>
-        
+
         <h2>4. Querying with SPARQL</h2>
-        <p>The SPARQL Panel at the bottom right allows you to query the data currently loaded in the editor.</p>
-        
-        <h3>Executing Queries</h3>
+        <p>The panel at the bottom right runs SPARQL against the tab that's in front.</p>
+
+        <h3>Running a query</h3>
         <ol>
-            <li><strong>Write Query</strong>: Enter your SPARQL query in the text area.</li>
-            <li><strong>Add Prefixes</strong>: Click <code>Add Prefixes</code> to automatically prepend common prefixes defined in your RDF data.</li>
-            <li><strong>Execute</strong>: Click <code>Execute Query</code> to run the query.</li>
+            <li>Write your query in the box. It has syntax colouring, and the tab-switching rules above apply: the data being queried is whatever's in the active tab.</li>
+            <li><strong>Add Prefixes</strong> pastes in <code>PREFIX</code> lines for every prefix declared in your data, so you needn't type them.</li>
+            <li><strong>Execute Query</strong> runs it. <strong>Clear Results</strong> tidies up afterwards.</li>
+            <li><strong>Export Query</strong> saves the query text as <code>query.sparql</code>.</li>
         </ol>
-        
-        <h3>Supported Query Types</h3>
-        <p>The engine supports standard SPARQL 1.1 query forms:</p>
+
+        <h3>What you can ask</h3>
+        <p>The engine (Comunica) speaks SPARQL 1.2, so everything from 1.1 plus the newer additions:</p>
         <ul>
-            <li><code>SELECT</code>: Returns a table of results.</li>
-            <li><code>ASK</code>: Returns a boolean (True/False).</li>
-            <li><code>CONSTRUCT</code>: Returns an RDF graph.</li>
-            <li><code>DESCRIBE</code>: Returns an RDF graph describing resources.</li>
+            <li><code>SELECT</code>: a table of answers.</li>
+            <li><code>ASK</code>: yes or no.</li>
+            <li><code>CONSTRUCT</code> and <code>DESCRIBE</code>: a graph, which can go straight into a new tab.</li>
+            <li>RDF 1.2 in queries: annotation blocks <code>{| |}</code> in patterns, triple terms <code>&lt;&lt;( )&gt;&gt;</code>, and <code>rdf:reifies</code>, all match what's in your data. Literals with a text direction (<code>"مرحبا"@ar--rtl</code>) keep it.</li>
         </ul>
-        
-        <h3>Viewing Results</h3>
-        <p>Results are displayed in a table below the query editor. You can clear the results by clicking <code>Clear Results</code>.</p>
-        
-        <h2>5. Advanced Features</h2>
-        
+
+        <h3>Reading the results</h3>
+        <p><code>SELECT</code> answers appear as a table. Language-tagged text shows its tag (<code>hello@en</code>, or <code>مرحبا@ar--rtl</code> when it has a direction) and a triple term is written out as <code>&lt;&lt;( s p o )&gt;&gt;</code>.</p>
+        <p><strong>Export Results</strong> offers CSV or JSON for a table. The JSON follows the SPARQL 1.2 results format, so other 1.2-aware tools can read it, triple terms and all. For a graph result it saves Turtle as <code>results.ttl</code>.</p>
+
+        <h3 id="graph-results">Graph results (<code>CONSTRUCT</code> and <code>DESCRIBE</code>)</h3>
+        <p>A graph result comes back as Turtle, written with the prefixes from your data, duplicates removed, and only the prefixes it actually uses declared at the top.</p>
+        <p>Where it goes depends on the <strong>Graph results to tab</strong> box among the SPARQL buttons:</p>
+        <ul>
+            <li><strong>Ticked</strong> (the default): the graph opens as a new <strong>Result</strong> tab in the editor, every subject in it is selected, and the diagram draws it straight away. The results panel just notes where it went and how many triples there were. From there you can tidy it, save it with <strong>Save File</strong>, or query it again.</li>
+            <li><strong>Unticked</strong>: the Turtle appears in the results panel as before, and nothing else changes.</li>
+        </ul>
+        <p>Either way <strong>Export Results</strong> still saves it.</p>
+
+        <h3>Things that catch people out</h3>
+        <ul>
+            <li><strong><code>HAVING</code> can't see your <code>AS</code> names.</strong> In <code>SELECT ?shop (COUNT(?x) AS ?n) … HAVING (?n &gt; 1)</code>, <code>?n</code> isn't bound yet when <code>HAVING</code> runs, so nothing comes back. Repeat the aggregate instead: <code>HAVING (COUNT(?x) &gt; 1)</code>. That's how SPARQL is specified, not a quirk of this engine.</li>
+            <li><strong>A <code>CONSTRUCT</code> template holds triples only.</strong> Sub-selects, <code>OPTIONAL</code>, <code>FILTER</code> and other <code>{ }</code> blocks belong in the <code>WHERE</code> part. Put one in the template and the parser will complain that it expected <code>}</code> and found <code>{</code>.</li>
+            <li><strong>You're querying the active tab.</strong> If a query that worked a minute ago suddenly returns nothing, check which tab is in front.</li>
+        </ul>
+
+        <h2 id="rdf-1-2">5. RDF 1.2 and SPARQL 1.2</h2>
+        <p>The parser (n3.js 2.2) and the query engine (Comunica 5.3) both speak the 1.2 versions of the standards, and the app has been checked against each feature below. Here's what you can rely on, and what to watch for.</p>
+
+        <h3>What works</h3>
+        <ul>
+            <li><strong>Turtle 1.2 input</strong>: the <code>VERSION "1.2"</code> line; triple terms <code>&lt;&lt;( s p o )&gt;&gt;</code>, nested ones included; annotations <code>{| … |}</code>; reifiers, whether written <code>~ :r</code>, <code>&lt;&lt; s p o &gt;&gt;</code> or <code>&lt;&lt; s p o ~ :r &gt;&gt;</code>; literals with a text direction such as <code>"مرحبا"@ar--rtl</code>; and <code>rdf:JSON</code> literals.</li>
+            <li><strong>JSON-LD input</strong>: <code>@direction</code> on a value is read and kept.</li>
+            <li><strong>SPARQL 1.2</strong>: all of the above in <code>WHERE</code> patterns and in <code>CONSTRUCT</code> templates; the <code>VERSION</code> line; <code>TRIPLE</code>, <code>SUBJECT</code>, <code>PREDICATE</code>, <code>OBJECT</code> and <code>isTRIPLE</code>; <code>LANGDIR</code>, <code>hasLANG</code>, <code>hasLANGDIR</code> and <code>STRLANGDIR</code>.</li>
+            <li><strong>Results</strong>: the table shows triple terms as <code>&lt;&lt;( s p o )&gt;&gt;</code> and directions as <code>@ar--rtl</code>; the JSON export uses the SPARQL 1.2 results format (<code>"type": "triple"</code>, <code>"its:dir"</code>).</li>
+            <li><strong>Turtle output</strong>, whether from a query, <strong>To Turtle</strong> or <strong>Save File</strong>: triple terms and directions come out as they went in.</li>
+            <li><strong>Diagram</strong>: triple terms as dark-green nodes, reifier blank nodes, and the optional dashed links.</li>
+            <li><strong>Reasoner</strong>: runs over 1.2 data. A triple term is treated as a single value to reason <em>about</em>, not something to reason <em>inside</em>, and <strong>Show Facts</strong> prints triple terms and directions properly.</li>
+        </ul>
+
+        <h3>What doesn't, yet</h3>
+        <ul>
+            <li><strong>RDF/XML input</strong> predates 1.2: a triple term written as <code>rdf:parseType="Triple"</code> is dropped without a word, and an <code>its:dir</code> direction is ignored (the language tag survives).</li>
+            <li><strong>To JSON-LD</strong> has no way to write a triple term, so it fails if your data has any. A literal's text direction is dropped too, as JSON-LD <code>@direction</code> isn't written out.</li>
+            <li><strong>The diagram shows a literal's text only</strong>: no language tag, direction or datatype, so <code>"مرحبا"@ar--rtl</code> looks like any other string. That's true of ordinary <code>@en</code> tags as well.</li>
+            <li><strong>Inferred triples</strong> that copy a literal with a direction (say, through <code>rdfs:subPropertyOf</code>) come back from the reasoner without the direction.</li>
+            <li><strong>CSV export</strong> is plain values: a triple term becomes the text <code>&lt;&lt;( s p o )&gt;&gt;</code>, and language tags and directions are left off.</li>
+            <li><strong>SPARQL Update</strong> (<code>INSERT</code>, <code>DELETE</code>, whether 1.1 or 1.2) isn't run. The panel only asks questions; change data in the editor.</li>
+        </ul>
+
+        <h2>6. Advanced Features</h2>
+
         <h3>Reasoning (Hylar)</h3>
-        <p>The application includes a client-side reasoner (Hylar) that supports OWL 2 RL.</p>
+        <p>There's a built-in OWL 2 RL reasoner. Click <strong>Show Facts</strong> in the Graph toolbar and a new window lists the <strong>explicit</strong> triples (the ones in your data) and the <strong>implicit</strong> ones the reasoner worked out from them.</p>
+
+        <h3>Format conversion</h3>
+        <p><strong>To Turtle</strong> and <strong>To JSON-LD</strong> in the Graph toolbar rewrite the active tab's data in that format, in place.</p>
+
+        <h3 id="url-parameters">URL parameters</h3>
+        <p>Add these to the page address to open it with data already loaded:</p>
         <ul>
-            <li>Click <code>Show Facts</code> in the Graph Toolbar to perform reasoning on your data.</li>
-            <li>This opens a new window showing <strong>Explicit Triples</strong> (asserted in your data) and <strong>Implicit Triples</strong> (inferred by the reasoner).</li>
+            <li><code>?dot=&lt;url&gt;</code>: fetch a Turtle or DOT file from that address.</li>
+            <li><code>?rdfa=&lt;url&gt;</code>: fetch that address too. If it returns RDF it's loaded as normal; pulling RDFa out of an HTML page isn't implemented yet, so a web page just gets a note saying so.</li>
         </ul>
-        
-        <h3>Format Conversion</h3>
-        <p>You can convert your current RDF data between formats using the buttons in the Graph Toolbar:</p>
-        <ul>
-            <li><code>To Turtle</code>: Converts current data to Turtle format.</li>
-            <li><code>To JSON-LD</code>: Converts current data to JSON-LD format.</li>
-        </ul>
-        
-        <h3>URL Parameters</h3>
-        <p>You can pre-load data when sharing a link to the application:</p>
-        <ul>
-            <li><code>?dot=<url></code>: Loads a DOT or Turtle file from the specified URL.</li>
-        </ul>
-        
+        <p>Remember to URL-encode the address you pass in.</p>
+
         <div class="footer">
-            <p>Documentation generated for Turtle Editor Viewer v2.0.0</p>
+            <p>Turtle Editor Viewer v2.0.0</p>
         </div>
     </div>
 </body>

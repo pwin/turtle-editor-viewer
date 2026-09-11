@@ -26,6 +26,11 @@
   cursor: grabbing;
 }
 
+/* Nodes are clickable (subject lookup) while the Subjects option is on */
+.graph-content-area.clickable-nodes svg .node {
+  cursor: pointer;
+}
+
 /* Ensure SVG content is contained */
 .graph-content-area #svg_output {
   width: 100% !important;

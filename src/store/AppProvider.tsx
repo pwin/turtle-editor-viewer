@@ -1,10 +1,16 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
 import type { AppState, EditorLanguage, EditorTheme } from '@/types'
+import {
+  SOURCE_TAB_ID,
+  activateTab,
+  closeTab,
+  createSourceTab,
+  openTab,
+  updateActiveTab,
+  type OpenTabPayload,
+} from './editor-tabs'
 
-// Initial state
-const initialState: AppState = {
-  editor: {
-    content: `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+const SAMPLE_CONTENT = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
 @prefix contact: <http://www.w3.org/2000/10/swap/pim/contact#>.
 @prefix dc: <http://purl.org/dc/elements/1.1/#>.
 @prefix exterms: <http://www.example.org/terms/>.
@@ -21,11 +27,19 @@ const initialState: AppState = {
     exterms:editor [
         exterms:fullName "Dave Beckett";
         exterms:homePage <http://purl.org/net/dajobe/>
-    ].`,
+    ].`
+
+// Initial state
+const initialState: AppState = {
+  editor: {
+    content: SAMPLE_CONTENT,
     language: 'turtle',
     theme: 'dark',
     fontSize: 12,
     isLoading: false,
+    tabs: [createSourceTab(SAMPLE_CONTENT, 'turtle')],
+    activeTabId: SOURCE_TAB_ID,
+    resultCount: 0,
   },
   graph: {
     dotText: '',
@@ -37,12 +51,13 @@ const initialState: AppState = {
       showPrefixes: false,
       hideTypes: false,
       hideAnnotations: false,
-      showSubjects: false,
+      showSubjects: true,
       rawOutput: false,
       sortSubjects: false,
       showLabels: true,
       showNodeLabels: true,
       showPredicateLabels: true,
+      linkTripleTerms: false,
     },
     isGenerating: false,
     error: null,
@@ -59,6 +74,7 @@ const initialState: AppState = {
     results: undefined,
     isExecuting: false,
     error: undefined,
+    openResultsInTab: true,
   },
 }
 
@@ -66,6 +82,10 @@ const initialState: AppState = {
 type AppAction =
   | { type: 'SET_EDITOR_CONTENT'; payload: string }
   | { type: 'SET_EDITOR_LANGUAGE'; payload: EditorLanguage }
+  | { type: 'OPEN_EDITOR_TAB'; payload: OpenTabPayload }
+  | { type: 'ACTIVATE_EDITOR_TAB'; payload: string }
+  | { type: 'CLOSE_EDITOR_TAB'; payload: string }
+  | { type: 'RENAME_EDITOR_TAB'; payload: string }
   | { type: 'SET_EDITOR_THEME'; payload: EditorTheme }
   | { type: 'SET_EDITOR_FONT_SIZE'; payload: number }
   | { type: 'SET_EDITOR_LOADING'; payload: boolean }
@@ -83,15 +103,26 @@ type AppAction =
   | { type: 'SET_SPARQL_RESULTS'; payload: any }
   | { type: 'SET_SPARQL_EXECUTING'; payload: boolean }
   | { type: 'SET_SPARQL_ERROR'; payload: string | undefined }
+  | { type: 'SET_SPARQL_OPEN_RESULTS_IN_TAB'; payload: boolean }
   | { type: 'RESET_APP' }
 
 // Reducer
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    // The document lives on the active tab; these write through to it and
+    // the tab helpers refresh editor.content / editor.language to match.
     case 'SET_EDITOR_CONTENT':
-      return { ...state, editor: { ...state.editor, content: action.payload } }
+      return updateActiveTab(state, { content: action.payload })
     case 'SET_EDITOR_LANGUAGE':
-      return { ...state, editor: { ...state.editor, language: action.payload } }
+      return updateActiveTab(state, { language: action.payload })
+    case 'RENAME_EDITOR_TAB':
+      return updateActiveTab(state, { title: action.payload })
+    case 'OPEN_EDITOR_TAB':
+      return openTab(state, action.payload)
+    case 'ACTIVATE_EDITOR_TAB':
+      return activateTab(state, action.payload)
+    case 'CLOSE_EDITOR_TAB':
+      return closeTab(state, action.payload)
     case 'SET_EDITOR_THEME':
       return { ...state, editor: { ...state.editor, theme: action.payload } }
     case 'SET_EDITOR_FONT_SIZE':
@@ -123,7 +154,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'SET_RDF_LABELS':
       return { ...state, rdf: { ...state.rdf, labels: action.payload } }
     case 'SET_SELECTED_SUBJECTS':
-      return { ...state, rdf: { ...state.rdf, selectedSubjects: action.payload } }
+      // Per tab as well, so a tab's diagram comes back when the tab does.
+      return updateActiveTab(state, { selectedSubjects: action.payload })
     case 'SET_SPARQL_QUERY':
       return { ...state, sparql: { ...state.sparql, query: action.payload } }
     case 'SET_SPARQL_RESULTS':
@@ -132,6 +164,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, sparql: { ...state.sparql, isExecuting: action.payload } }
     case 'SET_SPARQL_ERROR':
       return { ...state, sparql: { ...state.sparql, error: action.payload } }
+    case 'SET_SPARQL_OPEN_RESULTS_IN_TAB':
+      return { ...state, sparql: { ...state.sparql, openResultsInTab: action.payload } }
     case 'RESET_APP':
       return initialState
     default:

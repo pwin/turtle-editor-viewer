@@ -55,6 +55,7 @@ function EditorToolbar() {
       reader.onload = (e) => {
         const content = e.target?.result as string
         dispatch({ type: 'SET_EDITOR_CONTENT', payload: content })
+        dispatch({ type: 'RENAME_EDITOR_TAB', payload: file.name })
       }
       reader.readAsText(file)
     }

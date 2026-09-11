@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { DataFactory } from 'n3' ;
 import { saveAs } from 'file-saver';
 import { useAppContext } from '@/store/AppProvider';
 import { RDFParser } from '@/services/rdf-parser';
@@ -7,9 +6,9 @@ import { useSparqlEngine } from './useSparqlEngine';
 import MonacoEditorComponent from '@/components/editor/MonacoEditorComponent';
 
 import { SparqlUtils } from '@/utils/sparql-utils';
+import { formatResultTerm, resultTermLexical } from '@/utils/sparql-results';
 import './SPARQLPanel.css';
 
-const { namedNode, literal, blankNode, quad, defaultGraph } = DataFactory;
 
 
 
@@ -18,6 +17,9 @@ function SPARQLPanel() {
   const { sparql } = state
   const [showResults, setShowResults] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
+  // Set when the last graph result was opened as an editor tab, so the
+  // results pane can point at the tab instead of repeating the Turtle.
+  const [resultTab, setResultTab] = useState<{ title: string; triples: number } | null>(null)
   const splitContainerRef = useRef<HTMLDivElement>(null)
   const splitInstanceRef = useRef<any>(null)
 
@@ -74,12 +76,30 @@ function SPARQLPanel() {
 
   const { executeQuery } = useSparqlEngine();
 
+  /**
+   * Open a CONSTRUCT / DESCRIBE result as a new editor tab, pre-selecting all
+   * its subjects so the diagram pane draws it at once. The Turtle is parsed
+   * again here, rather than reusing the engine's quads, so the subject keys
+   * are exactly the ones EditorPane will compute when it parses the tab.
+   */
+  const openResultTab = async (turtle: string) => {
+    const graph = await new RDFParser().parseRDF(turtle, 'turtle')
+    if (graph.error || graph.quads.length === 0) return
+    const title = `Result ${state.editor.resultCount + 1}`
+    dispatch({
+      type: 'OPEN_EDITOR_TAB',
+      payload: { title, content: turtle, language: 'turtle', selectedSubjects: graph.subjects },
+    })
+    setResultTab({ title, triples: graph.quads.length })
+  }
+
   const handleExecuteQuery = async () => {
     if (!sparql.query.trim()) return
-    
+
     try {
       dispatch({ type: 'SET_SPARQL_EXECUTING', payload: true })
       dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
+      setResultTab(null)
       
       // First parse the RDF content from editor
       const parser = new RDFParser()
@@ -101,37 +121,15 @@ function SPARQLPanel() {
       
       console.log('0$$ SPARQL Panel: Parsing complete, quads found:', parseResult.quads.length);
 
-      // Convert RDFQuad to N3 Quad
-      const n3Quads = parseResult.quads.map(q => {
-        const subject = q.subject.termType === 'NamedNode' ? namedNode(q.subject.value) : blankNode(q.subject.value);
-        const predicate = namedNode(q.predicate.value);
-        let object;
-        if (q.object.termType === 'NamedNode') {
-          object = namedNode(q.object.value);
-        } else if (q.object.termType === 'Literal') {
-          object = literal(q.object.value, q.object.language || (q.object.datatype ? namedNode(q.object.datatype.value) : undefined));
-        } else {
-          object = blankNode(q.object.value);
-        }
-        
-        let graph;
-        if (q.graph) {
-          // Cast to any because RDFQuad definition might exclude DefaultGraph but runtime has it
-          const termType = (q.graph as any).termType;
-          if (termType === 'DefaultGraph') {
-            graph = defaultGraph();
-          } else if (termType === 'NamedNode') {
-            graph = namedNode(q.graph.value);
-          } else if (termType === 'BlankNode') {
-            graph = blankNode(q.graph.value);
-          }
-        }
-
-        return quad(subject, predicate, object, graph);
-      });
+      // The parser already yields RDF/JS quads (n3 term objects), so they go to
+      // the engine untouched. An earlier version rebuilt each term here through
+      // DataFactory, which silently discarded RDF 1.2 term kinds: triple terms
+      // (termType 'Quad') fell into the blank-node branch and became anonymous
+      // nodes, and directional literals lost their direction and datatype.
+      const n3Quads = parseResult.quads
 
       // Execute SPARQL query
-      const queryResult = await executeQuery(sparql.query, n3Quads) as any;
+      const queryResult = await executeQuery(sparql.query, n3Quads, parseResult.prefixes) as any;
       
       if (queryResult) {
         // Handle ASK queries special behavior
@@ -157,6 +155,9 @@ function SPARQLPanel() {
         } else {
             // Handle SELECT (results) and CONSTRUCT (rdfResult)
             dispatch({ type: 'SET_SPARQL_RESULTS', payload: queryResult })
+            if (queryResult.rdfResult && sparql.openResultsInTab) {
+                await openResultTab(queryResult.rdfResult)
+            }
         }
         
         setShowResults(true)
@@ -180,6 +181,7 @@ function SPARQLPanel() {
 
   const handleClearResults = () => {
     setShowResults(false)
+    setResultTab(null)
     dispatch({ type: 'SET_SPARQL_RESULTS', payload: undefined })
     dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
   }
@@ -229,7 +231,7 @@ function SPARQLPanel() {
                     const val = binding[v];
                     if (!val) return '';
                     // Escape quotes if needed, simple implementation
-                    let strVal = val.value;
+                    let strVal = resultTermLexical(val);
                     if (strVal.includes(',') || strVal.includes('"') || strVal.includes('\n')) {
                         strVal = `"${strVal.replace(/"/g, '""')}"`;
                     }
@@ -268,7 +270,8 @@ function SPARQLPanel() {
     if (!sparql.results || !showResults) return null
 
     // Handle serialized RDF result (CONSTRUCT/DESCRIBE)
-    if (sparql.results.rdfResult) {
+    if (sparql.results.rdfResult !== undefined) {
+        const { rdfResult } = sparql.results
         return (
             <div className="sparql-results-container">
               <div className="sparql-results">
@@ -277,9 +280,18 @@ function SPARQLPanel() {
                       <button onClick={handleClearResults} className="clear-btn">Clear</button>
                   </div>
                   <div className="results-table-container">
-                      <pre style={{ padding: '10px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-                          {sparql.results.rdfResult}
-                      </pre>
+                      {resultTab ? (
+                          <p className="results-note">
+                              Graph of {resultTab.triples} triples opened in editor tab
+                              {' '}<strong>{resultTab.title}</strong>; its subjects are selected in the diagram.
+                          </p>
+                      ) : rdfResult === '' ? (
+                          <p className="results-note">Empty graph: the query matched nothing.</p>
+                      ) : (
+                          <pre style={{ padding: '10px', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
+                              {rdfResult}
+                          </pre>
+                      )}
                   </div>
               </div>
             </div>
@@ -320,7 +332,7 @@ function SPARQLPanel() {
                       
                       return (
                         <td key={variable} className={`cell-${value?.type || 'empty'}`}>
-                          {value?.value || ''}
+                          {formatResultTerm(value)}
                         </td>
                       )
                     })}
@@ -358,6 +370,17 @@ function SPARQLPanel() {
           <button onClick={handleExportResultsClick} disabled={!sparql.results}>
             Export Results
           </button>
+          <label
+            className="sparql-option"
+            title="When a CONSTRUCT or DESCRIBE query returns a graph, open it in a new editor tab where it can be edited, queried and diagrammed"
+          >
+            <input
+              type="checkbox"
+              checked={sparql.openResultsInTab}
+              onChange={e => dispatch({ type: 'SET_SPARQL_OPEN_RESULTS_IN_TAB', payload: e.target.checked })}
+            />
+            Graph results to tab
+          </label>
         </div>
       </div>
       

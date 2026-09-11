@@ -52,9 +52,24 @@ export class RDFParser {
     try {
       // This is a simplified parser - in a real implementation you'd use n3.js
       // Dynamic import for N3.js when available
-      const { Parser, Store } = await import('n3')
-      
-      const parser = new Parser({ baseIRI: 'http://example.org/' })
+      const { DataFactory, Parser, Store } = await import('n3')
+
+      // Blank node ids must come out the same each time the same text is
+      // parsed. The app parses the document again on every edit and tab
+      // switch, and a blank node picked as a diagram subject would otherwise
+      // stop matching the re-parsed quads and vanish. n3 breaks this in two
+      // ways, both from counters shared across the whole page:
+      //  - labelled nodes are renamed b<N>_<label>, N per Parser instance;
+      //    blankNodePrefix '' keeps the document label (_:g_00 -> g_00), which
+      //    is what RDF 1.2 reifiers and CONSTRUCT results carry;
+      //  - anonymous nodes ([] and [ ... ]) are named n3-<N> by the default
+      //    DataFactory; this factory numbers them per parse, in document order.
+      let anonymous = 0
+      const factory = {
+        ...DataFactory,
+        blankNode: (name?: string) => DataFactory.blankNode(name || `anon-${anonymous++}`),
+      }
+      const parser = new Parser({ baseIRI: 'http://example.org/', blankNodePrefix: '', factory })
       const store = new Store()
       
       return new Promise((resolve, reject) => {
@@ -237,15 +252,12 @@ export class RDFParser {
   }
 
   /**
-   * Convert N3.js quad to our format
+   * Accept a parser quad as-is. Every parser this class uses emits RDF/JS
+   * quads already, and copying the four fields into a fresh object would only
+   * strip the `equals` method and hide RDF 1.2 term kinds from the type.
    */
-  private convertQuad(quad: any): RDFQuad {
-    return {
-      subject: quad.subject,
-      predicate: quad.predicate,
-      object: quad.object,
-      graph: quad.graph
-    }
+  private convertQuad(quad: RDFQuad): RDFQuad {
+    return quad
   }
 
   /**
@@ -365,12 +377,17 @@ export class RDFParser {
    * Shrink IRI using prefixes
    */
   static shrinkIRI(iri: string, prefixes: Record<string, string>): string {
-    for (const [prefix, namespace] of Object.entries(prefixes)) {
-      if (iri.startsWith(namespace)) {
-        return iri.replace(namespace, `${prefix}:`)
+    // Longest namespace wins. Namespaces nest (`ex:` <http://x/> alongside
+    // `exs:` <http://x/schema#>), and taking the first declared match would
+    // shrink <http://x/schema#p> to the misleading `ex:schema#p`.
+    let best: [string, string] | undefined
+    for (const entry of Object.entries(prefixes)) {
+      const [, namespace] = entry
+      if (iri.startsWith(namespace) && (!best || namespace.length > best[1].length)) {
+        best = entry
       }
     }
-    return iri
+    return best ? `${best[0]}:${iri.slice(best[1].length)}` : iri
   }
 
   /**

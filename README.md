@@ -4,9 +4,12 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 
 ## 🚀 Features
 
-- **RDF/Turtle Editing**: Syntax-highlighted editor with support for Turtle, RDF/XML, JSON-LD, and DOT formats
-- **Graph Visualization**: Real-time graph rendering using Graphviz with interactive pan/zoom
-- **SPARQL Queries**: Execute SPARQL SELECT, CONSTRUCT, DESCRIBE, and ASK queries
+- **RDF/Turtle Editing**: Syntax-highlighted editor with support for Turtle, RDF/XML, JSON-LD, and DOT formats, in tabs
+- **RDF 1.2**: Triple terms `<<( s p o )>>`, annotations `{| |}` and directional literals are parsed, queried, drawn and serialised in Turtle (see [USER_GUIDE.md](USER_GUIDE.md) §5 for what RDF/XML and JSON-LD don't yet cover)
+- **Graph Visualization**: Real-time graph rendering using Graphviz with interactive pan/zoom; triple terms drawn in dark green with optional links to what they mention
+- **Human-readable Labels**: `rdfs:label` / `skos:prefLabel` in the subject list and on diagram nodes and edges, with collisions disambiguated
+- **SPARQL 1.2 Queries**: Execute SELECT, CONSTRUCT, DESCRIBE and ASK queries with Comunica; results in the SPARQL 1.2 JSON format
+- **Graph Results as Documents**: CONSTRUCT / DESCRIBE output opens in a new editor tab, deduplicated and using the source's prefixes, and is drawn straight away
 - **Format Conversion**: Convert between RDF formats (Turtle ↔ RDF/XML ↔ JSON-LD)
 - **File Operations**: Load/save files locally and from URLs with CORS handling
 - **Modern UI**: Responsive, dark-themed interface built with React
@@ -14,11 +17,11 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript + Vite
 - **State Management**: React Context API with useReducer
-- **Editor**: Ace Editor with syntax highlighting
+- **Editor**: Monaco Editor with syntax highlighting, self-hosted
 - **Visualization**: Viz.js/Graphviz for graph rendering
-- **RDF Processing**: RDF-Ext + N3.js for parsing
+- **RDF Processing**: N3.js (Turtle, RDF 1.2), rdfxml-streaming-parser, @rdfjs/parser-jsonld; Comunica for SPARQL 1.2
 - **Styling**: Modern CSS with CSS Modules
 - **Development**: ESLint + Prettier + TypeScript
 
@@ -29,7 +32,7 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 src/
 ├── components/
 │   ├── layout/           # Layout components (Header, MainLayout)
-│   ├── editor/           # Editor components (EditorPane, Toolbar, AceEditor)
+│   ├── editor/           # Editor components (EditorPane, Toolbar, Tabs, Monaco wrapper)
 │   └── graph/            # Graph components (GraphPane, Visualization, SPARQL)
 ├── services/             # Business logic
 │   ├── rdf-parser.ts     # RDF parsing and format detection
@@ -99,8 +102,8 @@ npx prettier --write .
 
 3. **Query with SPARQL**:
    - Write SPARQL queries in the bottom panel
-   - Execute queries against the loaded RDF data
-   - View results in tabular format
+   - Execute queries against the active editor tab
+   - View SELECT results as a table; CONSTRUCT / DESCRIBE results open as a new tab (toggle with "Graph results to tab")
 
 4. **Export Results**:
    - Download the edited RDF content
@@ -111,6 +114,7 @@ npx prettier --write .
 
 Load content directly via URL parameters:
 - `?dot=<url>` - Load DOT or Turtle file from URL
+- `?rdfa=<url>` - Load a web page and extract the RDFa it contains
 
 Example:
 ```
