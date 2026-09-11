@@ -142,7 +142,7 @@
             <li><strong>Prefixes</strong>: show shortened names like <code>rdf:type</code> instead of full IRIs.</li>
             <li><strong>Hide Types</strong>: leave out <code>rdf:type</code> arrows to cut the clutter.</li>
             <li><strong>Hide Annotations</strong>: leave out labels, comments and the like, so you see structure rather than description.</li>
-            <li><strong>Subjects</strong>: show or hide the subject nodes themselves.</li>
+            <li><strong>Subjects</strong>: makes the nodes clickable. Click one and a pop-up lists every subject that points at it. On by default; untick it if the pop-ups get in the way while you pan.</li>
             <li><strong>Sort Subjects</strong>: list subjects alphabetically rather than in the order they appear in the file.</li>
             <li><strong>Node Labels</strong> and <strong>Property Labels</strong>: use <code>rdfs:label</code>/<code>skos:prefLabel</code> names in the diagram, for the boxes and for the arrows respectively, the same way <strong>Show labels</strong> does for the subject list. Both are on by default. Turn them off to see the raw IRIs.</li>
             <li><strong>Link Triple Terms</strong>: see the next section.</li>
@@ -157,7 +157,7 @@
         <h3>Getting around</h3>
         <ul>
             <li><strong>Pan and zoom</strong>: scroll to zoom, drag to pan (SVG only).</li>
-            <li><strong>Click a node</strong> and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value.</li>
+            <li><strong>Click a node</strong> and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value. (That's the <strong>Subjects</strong> option; untick it to turn the pop-ups off.)</li>
         </ul>
 
         <h2>4. Querying with SPARQL</h2>
@@ -236,7 +236,7 @@
         <p>Add these to the page address to open it with data already loaded:</p>
         <ul>
             <li><code>?dot=&lt;url&gt;</code>: fetch a Turtle or DOT file from that address.</li>
-            <li><code>?rdfa=&lt;url&gt;</code>: fetch a web page and pull out the RDFa embedded in it.</li>
+            <li><code>?rdfa=&lt;url&gt;</code>: fetch that address too. If it returns RDF it's loaded as normal; pulling RDFa out of an HTML page isn't implemented yet, so a web page just gets a note saying so.</li>
         </ul>
         <p>Remember to URL-encode the address you pass in.</p>
 

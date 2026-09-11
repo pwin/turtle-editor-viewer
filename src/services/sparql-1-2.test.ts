@@ -19,6 +19,11 @@ const DATA = join(COURSE, 'data/bookshop-trail-1.2.ttl')
 const QDIR = join(COURSE, 'queries/11-sparql-1-2')
 const available = existsSync(DATA) && existsSync(QDIR)
 
+// Each test parses the 6,000-line course file and runs Comunica on it, which
+// can take well over Vitest's 5 s default when the suite runs alongside the
+// other files. Not a correctness signal, so give it room.
+const TIMEOUT = 30_000
+
 const queries = available
   ? readdirSync(QDIR)
       .filter(f => f.endsWith('.rq'))
@@ -43,7 +48,7 @@ describe.skipIf(!available)('RDF 1.2 terms survive the app parser', () => {
     const quads = await parse()
     const tripleTerms = quads.filter(q => q.object.termType === 'Quad')
     expect(tripleTerms.length).toBeGreaterThan(0)
-  })
+  }, TIMEOUT)
 
   it('keeps base direction on literals', async () => {
     const quads = await parse()
@@ -54,7 +59,7 @@ describe.skipIf(!available)('RDF 1.2 terms survive the app parser', () => {
     expect(directional[0].datatype.value).toBe(
       'http://www.w3.org/1999/02/22-rdf-syntax-ns#dirLangString',
     )
-  })
+  }, TIMEOUT)
 })
 
 describe.skipIf(!available)('SPARQL 1.2 course queries via the app pipeline', () => {
@@ -62,6 +67,6 @@ describe.skipIf(!available)('SPARQL 1.2 course queries via the app pipeline', ()
     it(`answers ${name}`, async () => {
       const quads = await parse()
       expect(await rows(quads, text)).toBeGreaterThan(0)
-    })
+    }, TIMEOUT)
   }
 })

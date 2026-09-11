@@ -465,3 +465,38 @@ describe('label precedence on nodes', () => {
     expect(dotText).not.toContain('label="Fallback"')
   })
 })
+
+describe('no script can reach the diagram from the data', () => {
+  // These are the payloads that used to work against the javascript: URL
+  // the generator once attached to every node while Subjects was on: a
+  // percent-encoded quote (browsers decode javascript: URLs before running
+  // them), a quote-closing sequence, and a double quote that broke out of
+  // the DOT attribute altogether.
+  const HOSTILE = `
+    <http://x/a%27);alert(document.domain);//> ex:p "plain" .
+    ex:b ex:q "x'); alert(1); //" .
+    ex:c ex:r "y\\", fontcolor=red, URL=\\"javascript:alert(2)" .
+  `
+
+  // DOT structure with every quoted string blanked out, so anything that is
+  // left is syntax the generator itself wrote rather than data.
+  const structure = (dot: string) => dot.replace(/"(?:[^"\\]|\\.)*"/g, '""')
+
+  it('emits no URL or href attribute, whatever the Subjects option says', () => {
+    for (const showSubjects of [true, false]) {
+      const { dotText, error } = render(HOSTILE, { showSubjects })
+      expect(error).toBeUndefined()
+      expect(structure(dotText)).not.toMatch(/\b(URL|href)\s*=/i)
+      expect(structure(dotText)).not.toContain('javascript:')
+    }
+  })
+
+  it('keeps hostile values inside their quoted DOT strings', () => {
+    const { dotText } = render(HOSTILE, { showSubjects: true })
+    // Nothing from the data escapes into an attribute list.
+    expect(structure(dotText)).not.toContain('fontcolor=red')
+    expect(structure(dotText)).not.toContain('alert(')
+    // The literal is still drawn, quotes escaped, as a single node id.
+    expect(dotText).toContain('"y\\", fontcolor=red, URL=\\"javascript:alert(2)"')
+  })
+})

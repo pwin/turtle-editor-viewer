@@ -51,7 +51,7 @@ const initialState: AppState = {
       showPrefixes: false,
       hideTypes: false,
       hideAnnotations: false,
-      showSubjects: false,
+      showSubjects: true,
       rawOutput: false,
       sortSubjects: false,
       showLabels: true,

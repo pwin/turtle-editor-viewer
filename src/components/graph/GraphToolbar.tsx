@@ -390,7 +390,7 @@ function GraphToolbar() {
                 Link Triple Terms
               </label>
 
-              <label>
+              <label title="Click a node in the diagram to list the subjects that point at it">
                 <input
                   type="checkbox"
                   checked={graph.options.showSubjects}

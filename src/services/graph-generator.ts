@@ -512,12 +512,11 @@ export class GraphGenerator {
       attributes.push(`label="${this.escapeDot(this.wordWrap(display))}"`)
     }
 
-    // Add click handler for subjects if enabled. A triple term has no IRI to
-    // look up, so it gets none.
-    if (options.showSubjects && term.termType !== 'Quad') {
-      const safeValue = term.value.replace(/'/g, "\\'")
-      attributes.push(`URL="javascript:findTriplesForObject('${safeValue}')"`)
-    }
+    // No URL attribute. Node clicks are handled by GraphVisualization, which
+    // reads the node's <title> (Graphviz XML-escapes it) and looks the value
+    // up. An earlier version put a javascript: URL built from the term's
+    // value here; Graphviz emits that as an SVG <a href>, so a crafted IRI or
+    // literal in the data could run script in the app once clicked.
 
     if (attributes.length > 0 && !this.declaredRefs.has(ref)) {
       this.declaredRefs.add(ref)

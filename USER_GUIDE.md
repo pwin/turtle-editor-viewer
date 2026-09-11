@@ -71,7 +71,7 @@ The Graph toolbar lets you change how the diagram is laid out and drawn:
 - **Prefixes**: show shortened names like `rdf:type` instead of full IRIs.
 - **Hide Types**: leave out `rdf:type` arrows to cut the clutter.
 - **Hide Annotations**: leave out labels, comments and the like, so you see structure rather than description.
-- **Subjects**: show or hide the subject nodes themselves.
+- **Subjects**: makes the nodes clickable. Click one and a pop-up lists every subject that points at it. On by default; untick it if the pop-ups get in the way while you pan.
 - **Sort Subjects**: list subjects alphabetically rather than in the order they appear in the file.
 - **Node Labels** and **Property Labels**: use `rdfs:label`/`skos:prefLabel` names in the diagram, for the boxes and for the arrows respectively, the same way **Show labels** does for the subject list. Both are on by default. Turn them off to see the raw IRIs.
 - **Link Triple Terms**: see the next section.
@@ -86,7 +86,7 @@ Tick **Link Triple Terms** and each green node also gets dashed dark-green arrow
 
 ### Getting around
 - **Pan and zoom**: scroll to zoom, drag to pan (SVG only).
-- **Click a node** and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value.
+- **Click a node** and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value. (That's the **Subjects** option; untick it to turn the pop-ups off.)
 
 ## 4. Querying with SPARQL
 
@@ -159,7 +159,7 @@ There's a built-in OWL 2 RL reasoner. Click **Show Facts** in the Graph toolbar 
 Add these to the page address to open it with data already loaded:
 
 - `?dot=<url>`: fetch a Turtle or DOT file from that address.
-- `?rdfa=<url>`: fetch a web page and pull out the RDFa embedded in it.
+- `?rdfa=<url>`: fetch that address too. If it returns RDF it's loaded as normal; pulling RDFa out of an HTML page isn't implemented yet, so a web page just gets a note saying so.
 
 Remember to URL-encode the address you pass in.
 

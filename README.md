@@ -17,11 +17,11 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript + Vite
 - **State Management**: React Context API with useReducer
-- **Editor**: Ace Editor with syntax highlighting
+- **Editor**: Monaco Editor with syntax highlighting, self-hosted
 - **Visualization**: Viz.js/Graphviz for graph rendering
-- **RDF Processing**: RDF-Ext + N3.js for parsing
+- **RDF Processing**: N3.js (Turtle, RDF 1.2), rdfxml-streaming-parser, @rdfjs/parser-jsonld; Comunica for SPARQL 1.2
 - **Styling**: Modern CSS with CSS Modules
 - **Development**: ESLint + Prettier + TypeScript
 
@@ -32,7 +32,7 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 src/
 ├── components/
 │   ├── layout/           # Layout components (Header, MainLayout)
-│   ├── editor/           # Editor components (EditorPane, Toolbar, AceEditor)
+│   ├── editor/           # Editor components (EditorPane, Toolbar, Tabs, Monaco wrapper)
 │   └── graph/            # Graph components (GraphPane, Visualization, SPARQL)
 ├── services/             # Business logic
 │   ├── rdf-parser.ts     # RDF parsing and format detection

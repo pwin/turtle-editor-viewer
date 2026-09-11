@@ -216,28 +216,47 @@ export class HylarReasoner {
         </head>
         <body>
           <h1>OWL-RL Reasoning Results</h1>
-          
-          ${result.error ? `<div class="error"><strong>Error:</strong> ${result.error}</div>` : ''}
-          
+
+          <div class="error" id="error" hidden><strong>Error:</strong> <span id="error-text"></span></div>
+
           <div class="stats">
             <strong>Statistics:</strong><br>
-            Explicit Triples: ${result.explicitTriples.length}<br>
-            Implicit (Inferred) Triples: ${result.implicitTriples.length}<br>
-            Total: ${result.explicitTriples.length + result.implicitTriples.length}
+            Explicit Triples: <span id="explicit-count"></span><br>
+            Implicit (Inferred) Triples: <span id="implicit-count"></span><br>
+            Total: <span id="total-count"></span>
           </div>
-          
+
           <h2>Explicit Triples</h2>
-          <textarea readonly>${result.explicitTriples.join('\n')}</textarea>
-          
+          <textarea readonly id="explicit"></textarea>
+
           <h2>Implicit (Inferred) Triples</h2>
-          <textarea readonly>${result.implicitTriples.join('\n')}</textarea>
-          
+          <textarea readonly id="implicit"></textarea>
+
           <br><br>
           <button onclick="window.close()">Close Window</button>
         </body>
       </html>
     `)
-    
+
     resultWindow.document.close()
+
+    // The shell above is fixed markup. Everything that comes from the data
+    // (triples, and error messages that may quote it) is set as text, never
+    // written as HTML: a literal containing "</textarea><img onerror=...>"
+    // would otherwise run in this window, which shares the app's origin.
+    const doc = resultWindow.document
+    const setText = (id: string, text: string) => {
+      const el = doc.getElementById(id)
+      if (el) el.textContent = text
+    }
+    if (result.error) {
+      setText('error-text', result.error)
+      doc.getElementById('error')?.removeAttribute('hidden')
+    }
+    setText('explicit-count', String(result.explicitTriples.length))
+    setText('implicit-count', String(result.implicitTriples.length))
+    setText('total-count', String(result.explicitTriples.length + result.implicitTriples.length))
+    setText('explicit', result.explicitTriples.join('\n'))
+    setText('implicit', result.implicitTriples.join('\n'))
   }
 }
