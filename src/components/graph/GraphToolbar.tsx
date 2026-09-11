@@ -381,6 +381,15 @@ function GraphToolbar() {
                 Property Labels
               </label>
 
+              <label title="Draw dashed links from each triple term to the subject and object it is about">
+                <input
+                  type="checkbox"
+                  checked={graph.options.linkTripleTerms}
+                  onChange={handleCheckboxChange('linkTripleTerms')}
+                />
+                Link Triple Terms
+              </label>
+
               <label>
                 <input
                   type="checkbox"

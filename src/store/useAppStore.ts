@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { AppState, EditorLanguage, EditorTheme } from '@/types'
+import { SOURCE_TAB_ID } from './editor-tabs'
 // import type { AppState, EditorLanguage, EditorTheme, GraphEngine, GraphFormat, LayoutDirection } from '@/types'
 
 interface AppStore extends AppState {
@@ -61,6 +62,9 @@ const initialState: AppState = {
     theme: 'dark',
     fontSize: 12,
     isLoading: false,
+    tabs: [],
+    activeTabId: SOURCE_TAB_ID,
+    resultCount: 0,
   },
   graph: {
     dotText: '',
@@ -78,6 +82,7 @@ const initialState: AppState = {
       showLabels: true,
       showNodeLabels: true,
       showPredicateLabels: true,
+      linkTripleTerms: false,
     },
     isGenerating: false,
     error: null,
@@ -94,6 +99,7 @@ const initialState: AppState = {
     results: undefined,
     isExecuting: false,
     error: undefined,
+    openResultsInTab: true,
   },
 }
 

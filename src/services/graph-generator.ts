@@ -1,4 +1,4 @@
-import type { RDFQuad, GraphOptions } from '@/types'
+import type { RDFQuad, RDFTerm, GraphOptions } from '@/types'
 import { RDFParser } from './rdf-parser'
 import { buildLabelDisplayMap } from '@/utils/label-utils'
 
@@ -21,6 +21,12 @@ export class GraphGenerator {
   private declaredRefs: Set<string> = new Set()
   /** Predicate key -> text to render on the edge, when a label stands in for the IRI. */
   private predicateLabels: Map<string, string> = new Map()
+  /** Raw labels from the parser, for naming the terms inside a triple term. */
+  private labels: Record<string, string> = {}
+  /** Every node id this diagram draws, so triple-term links only target nodes that exist. */
+  private nodesInDiagram: Set<string> = new Set()
+  /** Triple terms drawn as nodes, by id, for the optional link-back pass. */
+  private tripleTerms: Map<string, RDFTerm> = new Map()
 
   /**
    * Generate DOT graph from RDF quads
@@ -34,11 +40,14 @@ export class GraphGenerator {
   ): DotGenerationResult {
     try {
       this.prefixes = prefixes
+      this.labels = labels
       this.declared.clear()
       this.nodeDeclarations = []
       this.nodeLabels.clear()
       this.declaredRefs.clear()
       this.predicateLabels.clear()
+      this.nodesInDiagram.clear()
+      this.tripleTerms.clear()
 
       if (selectedSubjects.length === 0) {
         return {
@@ -60,7 +69,13 @@ export class GraphGenerator {
       }
 
       // Generate DOT content
-      const graphContent = this.generateGraphContent(relevantQuads, options)
+      let graphContent = this.generateGraphContent(relevantQuads, options)
+
+      // Runs after the content pass so every node the diagram contains is
+      // known, which is what decides whether a link has somewhere to go.
+      if (options.linkTripleTerms) {
+        graphContent += this.linkTripleTerms()
+      }
 
       // Create legend if needed
       const legend = options.showPrefixes ? this.createLegend() : ''
@@ -198,8 +213,11 @@ export class GraphGenerator {
           return
         }
 
-        // Build a unique key for deduplication
-        const quadKey = `${q.subject.value}|${q.predicate.value}|${q.object.value}|${q.graph?.value ?? ''}`
+        // Build a unique key for deduplication. The object goes through
+        // termKey rather than .value: a triple term's .value is the empty
+        // string, so keying on it would collapse every triple term that
+        // shares a subject and predicate into one.
+        const quadKey = `${q.subject.value}|${q.predicate.value}|${this.termKey(q.object)}|${q.graph?.value ?? ''}`
 
         if (!seenQuads.has(quadKey)) {
           seenQuads.add(quadKey)
@@ -288,11 +306,19 @@ export class GraphGenerator {
     labels: Record<string, string>
   ): Map<string, string> {
     const keys = new Set<string>()
-    for (const quad of quads) {
-      for (const term of [quad.subject, quad.object]) {
-        if (term.termType === 'NamedNode') keys.add(this.shrinkIRI(term.value))
-        else if (term.termType === 'BlankNode') keys.add(term.value)
+    const collect = (term: RDFTerm) => {
+      if (term.termType === 'NamedNode') keys.add(this.shrinkIRI(term.value))
+      else if (term.termType === 'BlankNode') keys.add(term.value)
+      // A triple term's own terms are shown inside its node, so they need
+      // labels too.
+      else if (term.termType === 'Quad') {
+        collect(term.subject)
+        collect(term.object)
       }
+    }
+    for (const quad of quads) {
+      collect(quad.subject)
+      collect(quad.object)
     }
     return buildLabelDisplayMap(
       Array.from(keys),
@@ -314,7 +340,16 @@ export class GraphGenerator {
     labels: Record<string, string>
   ): Map<string, string> {
     const keys = new Set<string>()
-    for (const quad of quads) keys.add(this.shrinkIRI(quad.predicate.value))
+    const collect = (term: RDFTerm) => {
+      if (term.termType === 'Quad') {
+        keys.add(this.shrinkIRI(term.predicate.value))
+        collect(term.object)
+      }
+    }
+    for (const quad of quads) {
+      keys.add(this.shrinkIRI(quad.predicate.value))
+      collect(quad.object)
+    }
     return buildLabelDisplayMap(
       Array.from(keys),
       labels,
@@ -323,26 +358,150 @@ export class GraphGenerator {
   }
 
   /**
+   * A stable identity for a term, by content. Plain terms are identified by
+   * kind and value; a triple term (RDF 1.2, termType 'Quad') by the terms it
+   * contains, recursively, since its own .value is always the empty string.
+   */
+  private termKey(term: RDFTerm): string {
+    if (term.termType === 'Quad') {
+      return `<<(${this.termKey(term.subject)} ${this.termKey(term.predicate)} ${this.termKey(term.object)})>>`
+    }
+    if (term.termType === 'Literal') {
+      return `Literal:${term.value}@${term.language}${term.direction ?? ''}^^${term.datatype.value}`
+    }
+    return `${term.termType}:${term.value}`
+  }
+
+  /**
+   * The short form of a term for use inside a triple term's node text:
+   * prefixed IRIs, `_:` blank nodes, quoted literals, and nested triple terms
+   * in RDF 1.2 Turtle syntax. With `useLabels`, resources that have one show
+   * their label instead, kept on one line.
+   */
+  private describeTerm(term: RDFTerm, useLabels: boolean): string {
+    switch (term.termType) {
+      case 'NamedNode': {
+        const ref = this.shrinkIRI(term.value)
+        return useLabels ? this.inlineLabel(ref) : ref
+      }
+      case 'BlankNode':
+        return useLabels ? this.inlineLabel(term.value, `_:${term.value}`) : `_:${term.value}`
+      case 'Literal':
+        return `"${term.value}"`
+      case 'Quad':
+        return (
+          `<<( ${this.describeTerm(term.subject, useLabels)} ` +
+          `${this.describePredicate(term.predicate, useLabels)} ` +
+          `${this.describeTerm(term.object, useLabels)} )>>`
+        )
+      default:
+        return term.value
+    }
+  }
+
+  private describePredicate(term: RDFTerm, useLabels: boolean): string {
+    const ref = this.shrinkIRI(term.value)
+    if (!useLabels) return ref
+    const label = this.labels[ref]
+    if (!label) return ref
+    const display = this.predicateLabels.get(ref)
+    return display && display !== label ? `${label} 〈${ref}〉` : label
+  }
+
+  /**
+   * A node's label on one line, for embedding in a triple term. Uses the same
+   * ambiguity decision as the standalone node, but joins the two parts with a
+   * space rather than a line break.
+   */
+  private inlineLabel(key: string, fallback: string = key): string {
+    const label = this.labels[key]
+    if (!label) return fallback
+    const display = this.nodeLabels.get(key)
+    return display && display !== label ? `${label} 〈${key}〉` : label
+  }
+
+  /**
    * Declare a term and return its reference
    */
+  /**
+   * Tie each triple-term node back to the subject and object it mentions,
+   * where those are drawn in this diagram too. Together with the statement's
+   * own edge that makes a triangle, which is the clearest way to say "this
+   * annotation is about that edge".
+   *
+   * The links are dashed and green to read as commentary rather than data,
+   * and carry constraint=false so they never distort the layout: the real
+   * edges decide where nodes sit, and these are drawn over the top. A part
+   * that is not drawn as a node gets no link, so nothing is pulled into the
+   * diagram just to be pointed at.
+   */
+  private linkTripleTerms(): string {
+    let content = ''
+    for (const [ref, term] of this.tripleTerms) {
+      if (term.termType !== 'Quad') continue
+      const seen = new Set<string>()
+      for (const [role, part] of [
+        ['subject', term.subject],
+        ['object', term.object],
+      ] as const) {
+        const target = this.refOf(part)
+        if (!this.nodesInDiagram.has(target) || target === ref || seen.has(target)) continue
+        seen.add(target)
+        content +=
+          `  "${this.escapeDot(ref)}" -> "${this.escapeDot(target)}" ` +
+          `[label="${role}",style="dashed",color="darkgreen",fontcolor="darkgreen",constraint=false];\n`
+      }
+    }
+    return content
+  }
+
+  /**
+   * The DOT node id a term is drawn under. Pure: safe to call to find out
+   * where a term *would* be, without declaring it.
+   */
+  private refOf(term: RDFTerm): string {
+    switch (term.termType) {
+      case 'Literal':
+        return this.wordWrap(term.value)
+      case 'NamedNode':
+        return this.shrinkIRI(term.value)
+      case 'Quad':
+        // Built from the plain IRIs so it is stable whatever the label
+        // options are, and so the same triple term used twice is one node.
+        return this.describeTerm(term, false)
+      default:
+        return term.value
+    }
+  }
+
   private declareTerm(term: any, options: GraphOptions): string {
     if (this.declared.has(term)) {
       return this.declared.get(term)!
     }
 
-    let ref = term.value
+    const ref = this.refOf(term)
     const attributes: string[] = []
 
     if (term.termType === 'Literal') {
-      ref = this.wordWrap(term.value)
       attributes.push('color="blue"')
       attributes.push('fontcolor="blue"')
     } else if (term.termType === 'BlankNode') {
       attributes.push('color="orange"')
-    } else if (term.termType === 'NamedNode') {
-      ref = this.shrinkIRI(term.value)
+    } else if (term.termType === 'Quad') {
+      // An RDF 1.2 triple term: a statement used as a value, most often the
+      // target of rdf:reifies. It is drawn as its own node, coloured apart
+      // from resources (default), literals (blue) and blank nodes (orange),
+      // with the statement it stands for as the text.
+      attributes.push('color="darkgreen"')
+      attributes.push('fontcolor="darkgreen"')
+      const withLabels = this.describeTerm(term, options.showNodeLabels)
+      if (withLabels !== ref) {
+        attributes.push(`label="${this.escapeDot(this.wordWrap(withLabels))}"`)
+      }
+      this.tripleTerms.set(ref, term)
     }
 
+    this.nodesInDiagram.add(ref)
     this.declared.set(term, ref)
 
     // The node id stays the IRI so edges keep pointing at the right node and
@@ -353,8 +512,9 @@ export class GraphGenerator {
       attributes.push(`label="${this.escapeDot(this.wordWrap(display))}"`)
     }
 
-    // Add click handler for subjects if enabled
-    if (options.showSubjects) {
+    // Add click handler for subjects if enabled. A triple term has no IRI to
+    // look up, so it gets none.
+    if (options.showSubjects && term.termType !== 'Quad') {
       const safeValue = term.value.replace(/'/g, "\\'")
       attributes.push(`URL="javascript:findTriplesForObject('${safeValue}')"`)
     }

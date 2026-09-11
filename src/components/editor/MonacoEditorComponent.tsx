@@ -14,9 +14,14 @@ interface MonacoEditorComponentProps {
   language: EditorLanguage
   theme: EditorTheme
   fontSize: number
+  /**
+   * Identifies the Monaco model. Give each document its own so switching
+   * between them keeps separate undo history, cursor and scroll position.
+   */
+  path?: string
 }
 
-function MonacoEditorComponent({ value, onChange, language, theme, fontSize }: MonacoEditorComponentProps) {
+function MonacoEditorComponent({ value, onChange, language, theme, fontSize, path }: MonacoEditorComponentProps) {
   const monaco = useMonaco()
   
   // Map internal languages to Monaco languages
@@ -203,6 +208,7 @@ function MonacoEditorComponent({ value, onChange, language, theme, fontSize }: M
       <Editor
         height="100%"
         width="100%"
+        path={path}
         language={getMonacoLanguage(language)}
         theme={getMonacoTheme(theme)}
         value={value}

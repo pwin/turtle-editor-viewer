@@ -25,7 +25,32 @@
 
 .sparql-controls {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+/* Checkbox options that sit among the control buttons */
+.sparql-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #495057;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sparql-option input {
+  margin: 0;
+}
+
+/* Short message in place of a results table or graph */
+.results-note {
+  margin: 0;
+  padding: 10px;
+  font-size: 12px;
+  color: #495057;
 }
 
 .sparql-controls button {

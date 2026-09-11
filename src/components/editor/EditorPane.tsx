@@ -1,5 +1,6 @@
-import { useEffect, Suspense, lazy } from 'react'
+import { useEffect, useRef, Suspense, lazy } from 'react'
 import EditorToolbar from './EditorToolbar'
+import EditorTabs from './EditorTabs'
 import { useAppContext } from '@/store/AppProvider'
 import { RDFParser } from '@/services/rdf-parser'
 import { GraphGenerator } from '@/services/graph-generator'
@@ -54,16 +55,24 @@ function EditorPane() {
     checkURLParams()
   }, []) // Run once on mount
 
+  // Debounce typing, but not a tab switch: the other tab's document is
+  // complete, so its diagram should come straight back.
+  const lastTabId = useRef(state.editor.activeTabId)
+
   // Auto-detect language and refresh graph/data on content change
   useEffect(() => {
     const content = state.editor.content
     const trimmed = content.trim()
-    
+    const tabSwitched = state.editor.activeTabId !== lastTabId.current
+    lastTabId.current = state.editor.activeTabId
+
     // 1. Auto-detect language
     let newLang = state.editor.language
     if (trimmed.toLowerCase().startsWith('digraph')) {
       newLang = 'dot'
-    } else if (trimmed.startsWith('<')) {
+    } else if (trimmed.startsWith('<') && trimmed.includes('rdf:RDF')) {
+      // Same test as RDFParser.detectFormat. A bare '<' is not enough: Turtle
+      // with no prefix declarations starts with an IRI.
       newLang = 'xml'
     } else if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
       newLang = 'javascript'
@@ -118,10 +127,10 @@ function EditorPane() {
           }
         }
       }
-    }, 1000) // 1 second debounce
+    }, tabSwitched ? 0 : 1000) // 1 second debounce while typing
 
     return () => clearTimeout(timer)
-  }, [state.editor.content]) // Dependency only on content (and potentially options if we want to react to them, but they change separately)
+  }, [state.editor.content, state.editor.activeTabId]) // Not options: they are applied by their own handlers
 
   const handleContentChange = (content: string) => {
     dispatch({ type: 'SET_EDITOR_CONTENT', payload: content })
@@ -136,10 +145,14 @@ function EditorPane() {
 
   return (
     <div className="editor-pane-container">
+      <EditorTabs />
       <EditorToolbar />
       <div className="editor-content">
         <Suspense fallback={<div className="editor-loading">Loading Editor...</div>}>
           <MonacoEditorComponent
+            // One Monaco model per tab, so each keeps its own undo history,
+            // cursor and scroll position across switches.
+            path={state.editor.activeTabId}
             value={state.editor.content}
             onChange={handleContentChange}
             language={state.editor.language}

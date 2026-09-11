@@ -56,9 +56,12 @@ export class HylarReasoner {
 
       // Convert back to quads
       const processedFacts = hylarCore.factsToQuads(additions)
-      
-      // Separate explicit and implicit triples
-      const explicitTriples = this.quadsToNTriples(processedFacts.explicit || [])
+
+      // The explicit triples are the input, so list them from the parsed
+      // quads rather than Hylar's copy. Hylar keeps literals as strings and,
+      // reading them back, does not know RDF 1.2 text direction: "x"@ar--rtl
+      // would return with the direction lost and a garbled datatype.
+      const explicitTriples = this.quadsToNTriples(quads)
       const implicitTriples = this.quadsToNTriples(processedFacts.implicit || [])
 
       return {
@@ -124,16 +127,22 @@ export class HylarReasoner {
       
       case 'Literal': {
         let literal = `"${this.escapeLiteral(term.value)}"`
-        
+
         if (term.language) {
           literal += `@${term.language}`
+          // RDF 1.2 initial text direction rides on the language tag
+          if (term.direction) literal += `--${term.direction}`
         } else if (term.datatype && term.datatype.value !== 'http://www.w3.org/2001/XMLSchema#string') {
           literal += `^^<${term.datatype.value}>`
         }
-        
+
         return literal
       }
-      
+
+      // RDF 1.2 triple term, in N-Triples 1.2 syntax
+      case 'Quad':
+        return `<<( ${this.termToNTriple(term.subject)} ${this.termToNTriple(term.predicate)} ${this.termToNTriple(term.object)} )>>`
+
       default:
         return `<${term.value || term}>`
     }
