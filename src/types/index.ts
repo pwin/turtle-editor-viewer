@@ -146,8 +146,20 @@ export interface ShaclResult {
   component: string
 }
 
+/**
+ * What the engine materialises before validating. `none` is SHACL as the
+ * specification defines it; `rdfs` adds the RDFS closure of the data; `rules`
+ * runs SHACL-AF rules (sh:rule) once, as SHACL-AF defines; `rules-iterated`
+ * repeats them to a fixpoint, which the specification leaves undefined.
+ */
+export type ShaclInference = 'none' | 'rdfs' | 'rules' | 'rules-iterated'
+
+export const SHACL_INFERENCE_MODES: readonly ShaclInference[] = ['none', 'rdfs', 'rules', 'rules-iterated']
+
 export interface ShaclReport {
   conforms: boolean
+  /** The inference mode the report was produced under. */
+  inference: ShaclInference
   results: ShaclResult[]
   counts: Record<ShaclSeverity, number>
   shapeCount: number
@@ -160,6 +172,8 @@ export interface ShaclReport {
 export interface ShaclState {
   /** The editor tab holding the shapes graph. */
   shapesTabId?: string
+  /** What to materialise before validating; see ShaclInference. */
+  inference: ShaclInference
   report?: ShaclReport
   isValidating: boolean
   error?: string

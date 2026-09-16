@@ -128,6 +128,47 @@ describe('validateWithShapes', () => {
     expect(parsed.quads.length).toBeGreaterThan(0)
   })
 
+  it('runs SHACL-AF rules before validating when asked, and not otherwise', async () => {
+    const shapes = await parse(`
+      @prefix sh: <http://www.w3.org/ns/shacl#> .
+      @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+      @prefix ex: <http://ex/> .
+      ex:PersonShape a sh:NodeShape ; sh:targetClass ex:Person ;
+        sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate rdf:type ; sh:object ex:Agent ] .
+      ex:AgentShape a sh:NodeShape ; sh:targetClass ex:Agent ;
+        sh:property [ sh:path ex:name ; sh:minCount 1 ; sh:message "{$this} needs a name." ] .
+    `)
+    const data = await parse(`@prefix ex: <http://ex/> . ex:bob a ex:Person .`)
+
+    const asIs = await validateWithShapes(data.quads, shapes.quads, {}, 'none')
+    expect(asIs.conforms).toBe(true)
+    expect(asIs.inference).toBe('none')
+
+    const withRules = await validateWithShapes(data.quads, shapes.quads, {}, 'rules')
+    expect(withRules.conforms).toBe(false)
+    expect(withRules.inference).toBe('rules')
+    expect(withRules.results.map(r => r.message)).toEqual(['http://ex/bob needs a name.'])
+  })
+
+  it('validates the RDFS closure when asked', async () => {
+    const shapes = await parse(`
+      @prefix sh: <http://www.w3.org/ns/shacl#> .
+      @prefix ex: <http://ex/> .
+      ex:ParentShape a sh:NodeShape ; sh:targetSubjectsOf ex:parent ;
+        sh:property [ sh:path ex:name ; sh:minCount 1 ] .
+    `)
+    const data = await parse(`
+      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+      @prefix ex: <http://ex/> .
+      ex:father rdfs:subPropertyOf ex:parent .
+      ex:bob ex:father ex:jim .
+    `)
+    // SHACL follows rdfs:subClassOf for targets and nothing else, so without
+    // inference bob is not a subject of ex:parent and nothing is checked.
+    expect((await validateWithShapes(data.quads, shapes.quads, {}, 'none')).results).toHaveLength(0)
+    expect((await validateWithShapes(data.quads, shapes.quads, {}, 'rdfs')).results).toHaveLength(1)
+  })
+
   it('accepts RDF 1.2 data', async () => {
     const data = await parse(`@prefix ex: <http://ex/> .
       ex:alice a ex:Person ; ex:name "Alice" {| ex:source ex:census |} ; ex:age 40 .

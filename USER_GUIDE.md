@@ -137,7 +137,8 @@ SHACL is the other way to ask a question of your data: instead of a query that r
 1. Have the data in one tab and the shapes in another. Click **+** in the tab strip for a new tab, then **Open File** or **Load URL** into it. Or open the page with both in the address: `?dot=<data url>&shapes=<shapes url>` loads the shapes into their own tab and picks it for you.
 2. Switch to the **data** tab. Validation always checks the tab in front.
 3. In the **Shapes** dropdown at the right of the panel's buttons, choose the tab holding the shapes. It gets a small *shapes* badge in the tab strip so you can see which is which.
-4. Click **Validate**. The first click also loads the engine, about a megabyte; after that it's instant.
+4. Leave **Inference** at *none* unless a shapes file asks for something else ([below](#validating-with-inference)).
+5. Click **Validate**. The first click also loads the engine, about a megabyte; after that it's instant.
 
 ### Reading the report
 The headline says **Conforms** or **Does not conform**, with the number of violations, warnings and infos and how many shapes were checked. Under it, one row per result:
@@ -153,6 +154,19 @@ The headline says **Conforms** or **Does not conform**, with the number of viola
 
 ### Trying it
 The SPARQL course ships `shapes.ttl` and `shapes-advanced.ttl`. Load `bookshop-trail-1.1.ttl` as data and `shapes.ttl` as shapes, validate, then change a shop's `bs:staffCount` to `0` and validate again: one new violation, *"Staff count must be a positive integer"*, pointing at that shop.
+
+### Validating with inference
+The **Inference** dropdown next to **Shapes** says what the engine works out before it validates. *None*, the default, is SHACL as the specification defines it: the data is checked exactly as written. The other three add triples first, for that run only; the tab's text is never changed.
+
+- **RDFS** validates the RDFS closure of the data. SHACL follows `rdfs:subClassOf` when it decides what a `sh:targetClass` or `sh:class` covers, and nothing else, so a shape targeting `sh:targetSubjectsOf ex:parent` never sees a subject that only has `ex:father`, whatever `rdfs:subPropertyOf` says. This option closes that gap: subclass, subproperty, domain and range are all followed.
+- **rules** runs the shapes graph's SHACL-AF rules (`sh:rule`, both `sh:TripleRule` and `sh:SPARQLRule`) once, as the SHACL Advanced Features note defines, and validates the data plus what they inferred. A rule attached to a shape with no target never fires, and two rules at the same `sh:order` cannot see each other's results.
+- **rules, iterated** repeats the rules until nothing new appears, ten rounds at most. A rule that walks a chain (`ex:within` of `ex:within` is `ex:within`) needs this to close; the specification defines a single pass and says nothing about repeating it. A rule set that never settles stops with an error rather than running until memory does.
+
+The headline of the report says which mode produced it, so *Conforms* under *rules* isn't mistaken for *Conforms* over the data alone. The inferred triples themselves aren't listed — a validator's only output is its report — but a shape can make them visible: an `sh:sparql` constraint with `sh:severity sh:Info` that selects each inferred value reports one row per inference, and the [SHACL course](https://github.com/pwin/SHACL_Course) uses exactly that in its rules module.
+
+Two things change meaning under any inference: a `sh:closed` shape starts seeing inferred predicates and failing on them, and counts move. That is why inference is opt-in.
+
+A link can carry the setting: `?dot=<data>&shapes=<shapes>&inference=rules`.
 
 ### Things that catch people out
 - **A warning doesn't fail conformance.** A report can say *Conforms* and still list warnings and infos. Only violations count.
@@ -195,6 +209,7 @@ Add these to the page address to open it with data already loaded:
 - `?dot=<url>`: fetch a Turtle or DOT file from that address.
 - `?rdfa=<url>`: fetch that address too. If it returns RDF it's loaded as normal; pulling RDFa out of an HTML page isn't implemented yet, so a web page just gets a note saying so.
 - `?shapes=<url>`: fetch a SHACL shapes file into its own tab and select it for validation, leaving the data tab in front. Combine with `?dot=` to hand someone data and shapes in one link.
+- `?inference=none|rdfs|rules|rules-iterated`: preset the **Inference** dropdown, for a shapes file whose rules are meant to run. Anything else is ignored.
 
 Remember to URL-encode the address you pass in.
 

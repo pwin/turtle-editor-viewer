@@ -6,7 +6,7 @@ The Turtle Editor Viewer is a static, single-page web application. It is designe
 
 Two things are untrusted:
 
-1. **RDF content**: anything typed, pasted, opened from disk, or fetched from a URL, including URLs carried in a link (`?dot=`, `?rdfa=`, `?shapes=`). It may be crafted by an attacker who wants to run code in the app's origin or to exfiltrate what the user has loaded.
+1. **RDF content**: anything typed, pasted, opened from disk, or fetched from a URL, including URLs carried in a link (`?dot=`, `?rdfa=`, `?shapes=`). It may be crafted by an attacker who wants to run code in the app's origin or to exfiltrate what the user has loaded. A shapes graph is content of this kind too, and under the *rules* inference modes it is also a program the engine runs; see below.
 2. **The network**: the app must not contact any server the user has not explicitly named, and must not depend on any third-party host to function.
 
 Out of scope: the browser itself, the web server hosting the app, and the SPARQL endpoints a user chooses to query with `SERVICE`.
@@ -27,7 +27,8 @@ Implicit requests that libraries would otherwise make have been removed:
 - **prefix.cc lookups** (`@jeswr/prefixcc`, a dependency of Comunica's SHACL-Compact serialiser, which this app never invokes) are replaced at build time by a stub that rejects ([vite.config.ts](vite.config.ts), [src/stubs/prefixcc.ts](src/stubs/prefixcc.ts)). The fetch code is not in the bundle.
 - **Remote JSON-LD contexts** are refused by a `documentLoader` that rejects ([src/services/rdf-parser.ts](src/services/rdf-parser.ts)); a document referencing one gets an error asking for the context inline.
 - **Monaco** is self-hosted from `public/monaco/vs` ([scripts/setup-monaco.mjs](scripts/setup-monaco.mjs)); `@monaco-editor/react`'s default CDN path is overridden in [MonacoEditorComponent.tsx](src/components/editor/MonacoEditorComponent.tsx). The CSP would refuse the CDN script anyway.
-- **The SHACL engine** rejects `SERVICE` inside `sh:sparql` constraints (engine behaviour, verified), so a shapes graph cannot cause a request.
+- **The SHACL engine** rejects `SERVICE` inside `sh:sparql` constraints (engine behaviour, verified), so a shapes graph cannot cause a request. The same pre-binding check applies to a `sh:SPARQLTarget` and to the `CONSTRUCT` of a `sh:SPARQLRule` (verified), so switching the **Inference** dropdown to *rules* does not open a network path either. `SERVICE` in a query the user runs from the SPARQL panel is unaffected and remains allowed.
+- **`?inference=`** in a link is compared with the four known modes (`none`, `rdfs`, `rules`, `rules-iterated`); any other value is ignored with a console warning ([EditorPane.tsx](src/components/editor/EditorPane.tsx)). It selects an engine option and is never interpolated into a query or the page.
 
 No analytics, telemetry, error reporting, cookies or local storage.
 
@@ -67,6 +68,8 @@ All rendering of data-derived text is by `textContent` or escaped interpolation:
 ## Dependencies
 
 `package.json` lists only what the source imports (verified by scanning for import specifiers). `npm audit` reports two advisories, both DOMPurify as pinned inside `monaco-editor`'s own bundle; the affected APIs (`IN_PLACE`, `CUSTOM_ELEMENT_HANDLING`, `setConfig`/`clearConfig`) are not how Monaco calls it, and the only markdown Monaco sanitises here is the app's own static completion text. Only a Monaco release can move it.
+
+Inference is bounded. SHACL-AF rules run inside the WebAssembly engine on a copy of the parsed data; the text in the tab is not changed. *rules, iterated* stops after ten rounds, and a rule set that keeps producing new terms stops with an error rather than running until memory is exhausted. A hostile shapes graph can still make a single validation slow, as a hostile SPARQL query can; neither can reach outside the page.
 
 Known limitation: `hylar-core` (the OWL 2 RL reasoner) evaluates rule comparison operators with `eval`. The shipped rule set contains no such operators and the app passes no rules of its own, so the path is unreachable, and the CSP would refuse it if reached. Do not add user-supplied rules on top of Hylar.
 
