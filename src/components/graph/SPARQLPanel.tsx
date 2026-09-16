@@ -3,6 +3,21 @@ import { saveAs } from 'file-saver';
 import { useAppContext } from '@/store/AppProvider';
 import { RDFParser } from '@/services/rdf-parser';
 import { validateWithShapes } from '@/services/shacl-validator';
+import { SHACL_INFERENCE_MODES, type ShaclInference } from '@/types';
+
+/** What the Inference dropdown offers, and what each choice means. */
+const INFERENCE_LABEL: Record<ShaclInference, string> = {
+  none: 'none',
+  rdfs: 'RDFS',
+  rules: 'rules',
+  'rules-iterated': 'rules, iterated',
+}
+const INFERENCE_HINT: Record<ShaclInference, string> = {
+  none: 'Validate the data as it stands (SHACL as specified)',
+  rdfs: 'Validate the RDFS closure of the data: subclass, subproperty, domain and range are followed first',
+  rules: 'Run the SHACL-AF rules (sh:rule) in the shapes once, then validate data plus inferences',
+  'rules-iterated': 'Run the SHACL-AF rules repeatedly until nothing new is inferred (at most 10 rounds), then validate',
+}
 import { useSparqlEngine } from './useSparqlEngine';
 import MonacoEditorComponent from '@/components/editor/MonacoEditorComponent';
 
@@ -119,7 +134,12 @@ function SPARQLPanel() {
       if (shapes.quads.length === 0) throw new Error(`The shapes tab "${shapesTab.title}" has no triples`)
 
       // Data prefixes win where the two declare the same name differently.
-      const report = await validateWithShapes(data.quads, shapes.quads, { ...shapes.prefixes, ...data.prefixes })
+      const report = await validateWithShapes(
+        data.quads,
+        shapes.quads,
+        { ...shapes.prefixes, ...data.prefixes },
+        shacl.inference,
+      )
       dispatch({ type: 'SET_SHACL_REPORT', payload: report })
       setShowResults(true)
     } catch (error: any) {
@@ -337,6 +357,11 @@ function SPARQLPanel() {
               </span>
               {' '}· {plural(Violation, 'violation')}, {plural(Warning, 'warning')}, {Info} info
               {' '}· {plural(report.shapeCount, 'shape')}
+              {report.inference !== 'none' && (
+                <span className="shacl-inference" title={INFERENCE_HINT[report.inference]}>
+                  {' '}· {INFERENCE_LABEL[report.inference]}
+                </span>
+              )}
             </h4>
             <div className="results-actions">
               <button onClick={handleOpenReportTab} disabled={report.results.length === 0} title="Open the SHACL validation report graph as a new editor tab">
@@ -507,6 +532,17 @@ function SPARQLPanel() {
               <option value="">{editor.tabs.length > 1 ? 'choose a tab…' : 'open shapes in a new tab (+)'}</option>
               {editor.tabs.map(tab => (
                 <option key={tab.id} value={tab.id}>{tab.title}</option>
+              ))}
+            </select>
+          </label>
+          <label className="sparql-option" title={INFERENCE_HINT[shacl.inference]}>
+            Inference:
+            <select
+              value={shacl.inference}
+              onChange={e => dispatch({ type: 'SET_SHACL_INFERENCE', payload: e.target.value as ShaclInference })}
+            >
+              {SHACL_INFERENCE_MODES.map(mode => (
+                <option key={mode} value={mode} title={INFERENCE_HINT[mode]}>{INFERENCE_LABEL[mode]}</option>
               ))}
             </select>
           </label>

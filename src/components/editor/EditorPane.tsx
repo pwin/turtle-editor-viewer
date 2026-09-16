@@ -6,6 +6,7 @@ import { SOURCE_TAB_ID } from '@/store/editor-tabs'
 import { RDFParser } from '@/services/rdf-parser'
 import { GraphGenerator } from '@/services/graph-generator'
 import { FileHandler } from '@/services/file-handler'
+import { SHACL_INFERENCE_MODES, type ShaclInference } from '@/types'
 import './EditorPane.css'
 
 const MonacoEditorComponent = lazy(() => import('./MonacoEditorComponent'))
@@ -19,6 +20,7 @@ function EditorPane() {
       const dotUrl = FileHandler.getURLParameter('dot')
       const rdfaUrl = FileHandler.getURLParameter('rdfa')
       const shapesUrl = FileHandler.getURLParameter('shapes')
+      const inference = FileHandler.getURLParameter('inference')
       const fileName = (url: string) => decodeURIComponent(url.split('?')[0].split('/').pop() || '')
 
       if (dotUrl) {
@@ -73,6 +75,15 @@ function EditorPane() {
         } catch (e) {
           console.error('Exception loading shapes URL:', e)
         }
+      }
+
+      // ?inference=rules (or rdfs, rules-iterated) presets the Inference
+      // dropdown, so a link can carry a shapes graph whose rules are meant to
+      // run. Anything unrecognised is ignored rather than guessed at.
+      if (inference && (SHACL_INFERENCE_MODES as readonly string[]).includes(inference)) {
+        dispatch({ type: 'SET_SHACL_INFERENCE', payload: inference as ShaclInference })
+      } else if (inference) {
+        console.warn(`Ignoring ?inference=${inference}: expected one of ${SHACL_INFERENCE_MODES.join(', ')}`)
       }
     }
 

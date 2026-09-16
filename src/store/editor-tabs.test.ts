@@ -29,7 +29,7 @@ function baseState(): AppState {
     rdf: { quads: [], subjects: [], prefixes: {}, selectedSubjects: ['ex:a'], labels: {} },
     graph: {} as AppState['graph'],
     sparql: {} as AppState['sparql'],
-    shacl: { isValidating: false },
+    shacl: { isValidating: false, inference: 'none' },
   }
 }
 
