@@ -72,7 +72,9 @@
     <div class="container">
         <h1><img src="images/semantechsLogo.jpeg" alt="Semantechs Logo" class="logo" /> User Guide</h1>
 
-        <p>Welcome to the <strong>Turtle Editor Viewer</strong>. It's a place to write or load RDF, see it drawn as a diagram, and ask it questions with SPARQL. Everything runs in your browser, so nothing you paste in leaves your machine. It understands RDF 1.2 and SPARQL 1.2, with a few gaps listed in <a href="#rdf-1-2">section 5</a>. This guide walks through what's on the screen and what each part does.</p>
+        <p>Welcome to the <strong>Turtle Editor Viewer</strong>. It's a place to write or load RDF, see it drawn as a diagram, and ask it questions with SPARQL. Everything runs in your browser, so nothing you paste in leaves your machine. It understands RDF 1.2 and SPARQL 1.2, with a few gaps listed in <a href="#rdf-1-2">section 6</a>, and it can check your data against SHACL shapes (<a href="#shacl">section 5</a>). This guide walks through what's on the screen and what each part does.</p>
+
+        <p><strong>Where your data goes: nowhere.</strong> Parsing, drawing, querying, reasoning and validation all run inside the page. The only times the browser talks to another server are the ones you ask for: a URL you load, or a <code>SERVICE</code> clause in a query you run. <a href="#security">Section 8</a> spells this out, including what the browser itself enforces.</p>
 
         <h2>1. Getting Started</h2>
 
@@ -80,9 +82,9 @@
         <p>The window is split into two panes, and you can drag the bar between them to change their widths:</p>
         <ul>
             <li><strong>Editor pane</strong> (left): where your data lives. There's a code editor, a toolbar above it, and a list of the subjects found in your data so you can pick which ones to draw.</li>
-            <li><strong>Graph and SPARQL pane</strong> (right): the diagram at the top, the SPARQL panel underneath. Drag the bar between those two to give one more room.</li>
+            <li><strong>Graph and SPARQL pane</strong> (right): the diagram at the top, the SPARQL &amp; SHACL panel underneath. Drag the bar between those two to give one more room.</li>
         </ul>
-        <p>Once you've run a query that returns a graph, the editor pane grows a row of tabs along the top. More on that in a moment.</p>
+        <p>The editor pane has a row of tabs along the top: the document you start with, plus any query results or extra files you open. More on that in a moment.</p>
 
         <h2>2. Working with Data (Editor Pane)</h2>
 
@@ -101,11 +103,12 @@
         <ul>
             <li><strong>Source</strong> is the tab you start in. It holds whatever you typed, opened or loaded.</li>
             <li><strong>Result 1</strong>, <strong>Result 2</strong> and so on appear when a <code>CONSTRUCT</code> or <code>DESCRIBE</code> query returns a graph (see <a href="#graph-results">Graph results</a>). They're ordinary documents: edit them, save them, query them, draw them.</li>
+            <li><strong>+</strong> at the end of the strip opens an empty tab. That's how you bring a second file in alongside the first, for instance the SHACL shapes you want to validate against: click <strong>+</strong>, then <strong>Open File</strong> or <strong>Load URL</strong> into it, and the tab takes the file's name.</li>
         </ul>
-        <p>Each tab remembers its own text, its own language and its own choice of subjects for the diagram, so flicking between tabs brings each diagram straight back. The tab strip only shows up when there's more than one tab. Close a tab with its <strong>×</strong>; you can close any tab, including Source, except the last one standing. Closing a tab never touches what's in the others.</p>
+        <p>Each tab remembers its own text, its own language and its own choice of subjects for the diagram, so flicking between tabs brings each diagram straight back. Close a tab with its <strong>×</strong>; you can close any tab, including Source, except the last one standing. Closing a tab never touches what's in the others.</p>
         <p>Two things to keep in mind:</p>
         <ul>
-            <li>The subject list, the diagram and the SPARQL panel all work on <strong>whichever tab is in front</strong>. Run a query while a Result tab is showing and you're querying that result.</li>
+            <li>The subject list, the diagram, the query panel and the validator all work on <strong>whichever tab is in front</strong>. Run a query while a Result tab is showing and you're querying that result.</li>
             <li>Undo history is per tab too, so Ctrl+Z in one tab won't unpick edits in another.</li>
         </ul>
 
@@ -161,7 +164,7 @@
         </ul>
 
         <h2>4. Querying with SPARQL</h2>
-        <p>The panel at the bottom right runs SPARQL against the tab that's in front.</p>
+        <p>The <strong>SPARQL &amp; SHACL</strong> panel at the bottom right runs SPARQL against the tab that's in front. (Its other job, validation, is <a href="#shacl">section 5</a>.)</p>
 
         <h3>Running a query</h3>
         <ol>
@@ -200,7 +203,40 @@
             <li><strong>You're querying the active tab.</strong> If a query that worked a minute ago suddenly returns nothing, check which tab is in front.</li>
         </ul>
 
-        <h2 id="rdf-1-2">5. RDF 1.2 and SPARQL 1.2</h2>
+        <h2 id="shacl">5. Validating with SHACL</h2>
+        <p>SHACL is the other way to ask a question of your data: instead of a query that returns rows, a set of <strong>shapes</strong> that say what well-formed data looks like, and a report of everywhere the data falls short. The editor runs a full SHACL engine in the browser (the same one behind <a href="https://github.com/pwin/SHACL_Engine"><code>holos</code></a>, compiled to WebAssembly): SHACL Core and SHACL-SPARQL, so <code>sh:sparql</code> constraints and SPARQL-based targets work too, and it reads RDF 1.2 data.</p>
+
+        <h3>Running a validation</h3>
+        <ol>
+            <li>Have the data in one tab and the shapes in another. Click <strong>+</strong> in the tab strip for a new tab, then <strong>Open File</strong> or <strong>Load URL</strong> into it. Or open the page with both in the address: <code>?dot=&lt;data url&gt;&amp;shapes=&lt;shapes url&gt;</code> loads the shapes into their own tab and picks it for you.</li>
+            <li>Switch to the <strong>data</strong> tab. Validation always checks the tab in front.</li>
+            <li>In the <strong>Shapes</strong> dropdown at the right of the panel's buttons, choose the tab holding the shapes. It gets a small <em>shapes</em> badge in the tab strip so you can see which is which.</li>
+            <li>Click <strong>Validate</strong>. The first click also loads the engine, about a megabyte; after that it's instant.</li>
+        </ol>
+
+        <h3>Reading the report</h3>
+        <p>The headline says <strong>Conforms</strong> or <strong>Does not conform</strong>, with the number of violations, warnings and infos and how many shapes were checked. Under it, one row per result:</p>
+        <ul>
+            <li><strong>Severity</strong>: <code>Violation</code> counts against conformance; <code>Warning</code> and <code>Info</code> don't, they're advice.</li>
+            <li><strong>Focus node</strong>: the thing that was checked.</li>
+            <li><strong>Path</strong>: the property the constraint is about, blank for constraints on the node as a whole. A path expression is written out (<code>^ex:employs</code>, <code>(rdfs:subClassOf)+</code>) rather than left as a blank node.</li>
+            <li><strong>Value</strong>: the offending value, where there is one.</li>
+            <li><strong>Message</strong>: the shape's <code>sh:message</code>, with <code>{$this}</code>, <code>{$path}</code> and <code>{$value}</code> filled in, or a description of the constraint if the shape has no message.</li>
+            <li><strong>Shape</strong>: which shape said so. A property shape nested inside a node shape shows as <code>ex:ShopShape › property 2</code>.</li>
+        </ul>
+        <p><strong>Report as tab</strong> opens the report itself as a new tab. It's an RDF graph (<code>sh:ValidationReport</code>, <code>sh:ValidationResult</code>), so you can draw it, query it (<code>SELECT ?focus WHERE { ?r sh:focusNode ?focus }</code>) or save it. <strong>Export report</strong> saves it straight to <code>validation-report.ttl</code>. <strong>Clear</strong> puts the panel back.</p>
+
+        <h3>Trying it</h3>
+        <p>The SPARQL course ships <code>shapes.ttl</code> and <code>shapes-advanced.ttl</code>. Load <code>bookshop-trail-1.1.ttl</code> as data and <code>shapes.ttl</code> as shapes, validate, then change a shop's <code>bs:staffCount</code> to <code>0</code> and validate again: one new violation, <em>"Staff count must be a positive integer"</em>, pointing at that shop.</p>
+
+        <h3>Things that catch people out</h3>
+        <ul>
+            <li><strong>A warning doesn't fail conformance.</strong> A report can say <em>Conforms</em> and still list warnings and infos. Only violations count.</li>
+            <li><strong><code>sh:lessThan</code> between two <code>xsd:gYear</code> values</strong> (<code>bs:born</code> before <code>bs:died</code>, say) is reported as a violation by this engine, even when the years are in the right order. SPARQL's <code>&lt;</code> isn't defined for <code>gYear</code>, and SHACL treats a comparison it can't make as a failure; some other validators compare the years anyway. So <code>shapes.ttl</code> reports eight of these on the untouched data, all from the one shape. Any other findings are real.</li>
+            <li><strong><code>SERVICE</code> is not allowed inside shapes.</strong> A <code>sh:sparql</code> constraint that tries to reach a remote endpoint is rejected by the engine. Queries in the SPARQL editor can still use <code>SERVICE</code>.</li>
+        </ul>
+
+        <h2 id="rdf-1-2">6. RDF 1.2 and SPARQL 1.2</h2>
         <p>The parser (n3.js 2.2) and the query engine (Comunica 5.3) both speak the 1.2 versions of the standards, and the app has been checked against each feature below. Here's what you can rely on, and what to watch for.</p>
 
         <h3>What works</h3>
@@ -212,6 +248,7 @@
             <li><strong>Turtle output</strong>, whether from a query, <strong>To Turtle</strong> or <strong>Save File</strong>: triple terms and directions come out as they went in.</li>
             <li><strong>Diagram</strong>: triple terms as dark-green nodes, reifier blank nodes, and the optional dashed links.</li>
             <li><strong>Reasoner</strong>: runs over 1.2 data. A triple term is treated as a single value to reason <em>about</em>, not something to reason <em>inside</em>, and <strong>Show Facts</strong> prints triple terms and directions properly.</li>
+            <li><strong>SHACL validation</strong> reads 1.2 data, triple terms and all, and shapes can target and constrain it.</li>
         </ul>
 
         <h3>What doesn't, yet</h3>
@@ -224,7 +261,7 @@
             <li><strong>SPARQL Update</strong> (<code>INSERT</code>, <code>DELETE</code>, whether 1.1 or 1.2) isn't run. The panel only asks questions; change data in the editor.</li>
         </ul>
 
-        <h2>6. Advanced Features</h2>
+        <h2>7. Advanced Features</h2>
 
         <h3>Reasoning (Hylar)</h3>
         <p>There's a built-in OWL 2 RL reasoner. Click <strong>Show Facts</strong> in the Graph toolbar and a new window lists the <strong>explicit</strong> triples (the ones in your data) and the <strong>implicit</strong> ones the reasoner worked out from them.</p>
@@ -237,8 +274,45 @@
         <ul>
             <li><code>?dot=&lt;url&gt;</code>: fetch a Turtle or DOT file from that address.</li>
             <li><code>?rdfa=&lt;url&gt;</code>: fetch that address too. If it returns RDF it's loaded as normal; pulling RDFa out of an HTML page isn't implemented yet, so a web page just gets a note saying so.</li>
+            <li><code>?shapes=&lt;url&gt;</code>: fetch a SHACL shapes file into its own tab and select it for validation, leaving the data tab in front. Combine with <code>?dot=</code> to hand someone data and shapes in one link.</li>
         </ul>
         <p>Remember to URL-encode the address you pass in.</p>
+
+        <h2 id="security">8. Security and privacy</h2>
+        <p>This tool is built so that it can be used with data you'd rather not send anywhere. Here is exactly what that means, in plain terms, so you can decide for yourself.</p>
+
+        <h3>Everything runs in the page</h3>
+        <p>The Turtle parser, the Graphviz renderer, the SPARQL engine (Comunica), the reasoner (Hylar) and the SHACL engine (a WebAssembly build of <code>holos</code>) all run inside your browser tab. They're served from the same place as the page itself, never from a content-delivery network, and none of them phones home. There's no analytics, no telemetry, no crash reporting, and no "look up this prefix online" convenience. The one such lookup a library used to carry (prefix.cc, inside a serialiser this app never calls) has been cut out of the build altogether.</p>
+
+        <h3>The only things that leave the browser, and only when you ask</h3>
+        <ul>
+            <li><strong>A URL you load.</strong> <em>Load URL</em> in the Graph toolbar, and <code>?dot=</code>, <code>?rdfa=</code> and <code>?shapes=</code> in the page address, fetch the address you give. The server at that address sees the request, as any web fetch does. Nothing from your editor goes with it.</li>
+            <li><strong>A <code>SERVICE</code> clause in a query you run.</strong> Federation is part of SPARQL, and the course uses it. When your query names an endpoint, the part of the query inside the <code>SERVICE</code> block, along with the bindings needed to answer it, goes to that endpoint. That's the one way anything from the tab reaches another server, and it happens only because the query you wrote says so. If you've pasted something sensitive into the editor, don't then run a <code>SERVICE</code> query that joins it against a public endpoint.</li>
+        </ul>
+        <p>That's the whole list. In particular:</p>
+        <ul>
+            <li><strong>JSON-LD contexts are not fetched.</strong> A JSON-LD document whose <code>@context</code> is a URL would normally make the parser go and get it; here it's refused with a message asking you to paste the context into the document. That request would have been made by the document, not by you.</li>
+            <li><strong>Shapes can't reach out.</strong> The SHACL engine rejects <code>SERVICE</code> inside <code>sh:sparql</code> constraints outright.</li>
+            <li><strong>Nothing is stored.</strong> No cookies, no local storage, no account. Close the tab and it's gone.</li>
+        </ul>
+
+        <h3>The browser enforces it</h3>
+        <p>The page carries a Content Security Policy, so the rules above aren't just good intentions. Scripts run only from the page's own origin: no inline scripts, no <code>javascript:</code> links, no <code>eval</code>. The page may connect only to its own origin and to HTTP(S) addresses, which is what <em>Load URL</em> and <code>SERVICE</code> need. If a future change, or a bug, tried to load a script from elsewhere or run code smuggled in through a data file, the browser would refuse and say so in the console.</p>
+        <p>Data can't run code, either. Everything that comes from a file, IRIs, labels, literal text, is drawn, listed and printed as text. A literal containing <code>&lt;script&gt;</code> or <code>&lt;img onerror=…&gt;</code> is just an ugly string.</p>
+
+        <h3>If you're deploying this inside an organisation</h3>
+        <ul>
+            <li>The policy allows connections to any <code>http:</code> or <code>https:</code> address, because that's what <code>SERVICE</code> needs. To restrict it to approved endpoints, send a <code>Content-Security-Policy</code> header from your web server with a tighter <code>connect-src</code> (say, <code>connect-src 'self' https://sparql.example.internal</code>); the browser applies both, and the stricter one wins. Drop <code>http:</code> if all your endpoints are HTTPS.</li>
+            <li>Everything the page needs is in the deployed folder: no outbound access is required to run it, so it works on a network with no route to the internet.</li>
+            <li>The dependency tree is audited (<code>npm audit</code>) and pruned to what the app actually imports. The one remaining advisory is DOMPurify inside the Monaco editor's own bundle; the affected APIs aren't ones Monaco calls, and the only markdown it sanitises is the app's own static text.</li>
+        </ul>
+
+        <h3>Things worth knowing</h3>
+        <ul>
+            <li><strong>A link can carry a URL.</strong> <code>?dot=https://…</code> fetches whatever address the link names. That's the point of it, and it's also why you should treat such a link like any other link: it will load that file into your editor.</li>
+            <li><strong>The reasoner is old.</strong> Hylar uses <code>eval</code> internally for rules with arithmetic in them. The OWL 2 RL rules it ships with have none, so that path is never taken here, and the policy above would refuse it if it were. Adding custom rules on top of Hylar would need a different reasoner.</li>
+            <li><strong>Nothing here is a substitute for your own review.</strong> The source is public; the checks described are the ones that have been done, and the <code>SECURITY.md</code> file in the repository says how to repeat them.</li>
+        </ul>
 
         <div class="footer">
             <p>Turtle Editor Viewer v2.0.0</p>
