@@ -15,6 +15,23 @@ _:g_00 rdf:reifies <<(bt:shop-ex-libris bs:founded "1919"^^xsd:gYear)>>;
     bs:confidence 0.99.
 `
 
+describe('RDFParser makes no network requests', () => {
+  it('refuses a remote JSON-LD context rather than fetching it', async () => {
+    const doc = '{"@context": "https://schema.org/", "@id": "http://ex/x", "name": "x"}'
+    const result = await new RDFParser().parseRDF(doc, 'javascript')
+    expect(result.error).toContain('was not fetched')
+    expect(result.error).toContain('https://schema.org/')
+    expect(result.quads).toEqual([])
+  })
+
+  it('still parses JSON-LD whose context is inline', async () => {
+    const doc = '{"@context": {"name": "http://ex/name"}, "@id": "http://ex/x", "name": "x"}'
+    const result = await new RDFParser().parseRDF(doc, 'javascript')
+    expect(result.error).toBeUndefined()
+    expect(result.quads).toHaveLength(1)
+  })
+})
+
 describe('RDFParser blank node subjects', () => {
   it('lists a top-level labelled blank node under its document label', async () => {
     const { subjects, error } = await new RDFParser().parseRDF(RESULT, 'turtle')
