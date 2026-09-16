@@ -56,3 +56,27 @@
 .editor-tab-close:hover {
   color: #dc3545;
 }
+
+.editor-tab-new {
+  background: none;
+  border: none;
+  padding: 4px 10px;
+  font-size: 16px;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
+}
+
+.editor-tab-new:hover {
+  color: #212529;
+}
+
+.editor-tab-badge {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background-color: #d1e7dd;
+  color: #0f5132;
+  font-size: 10px;
+  font-weight: 600;
+}

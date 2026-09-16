@@ -29,6 +29,7 @@ function baseState(): AppState {
     rdf: { quads: [], subjects: [], prefixes: {}, selectedSubjects: ['ex:a'], labels: {} },
     graph: {} as AppState['graph'],
     sparql: {} as AppState['sparql'],
+    shacl: { isValidating: false },
   }
 }
 
@@ -59,6 +60,21 @@ describe('openTab', () => {
   it('accepts an explicit title', () => {
     const s = openTab(baseState(), { content: RESULT, language: 'turtle', title: 'DESCRIBE 1' })
     expect(activeTab(s).title).toBe('DESCRIBE 1')
+  })
+
+  it('uses a requested id when it is free, and does not spend a result number on it', () => {
+    let s = openTab(baseState(), { id: 'shapes', title: 'shapes.ttl', content: '', language: 'turtle' })
+    expect(activeTab(s).id).toBe('shapes')
+    expect(s.editor.resultCount).toBe(0)
+    s = openTab(s, { content: RESULT, language: 'turtle' })
+    expect(activeTab(s).title).toBe('Result 1')
+  })
+
+  it('falls back to a result id when the requested one is taken', () => {
+    let s = openTab(baseState(), { id: 'shapes', title: 'a', content: '', language: 'turtle' })
+    s = openTab(s, { id: 'shapes', title: 'b', content: '', language: 'turtle' })
+    expect(s.editor.tabs.map(t => t.id)).toEqual([SOURCE_TAB_ID, 'shapes', 'result-1'])
+    expect(activeTab(s).title).toBe('b')
   })
 
   it('leaves the previous tab exactly as it was', () => {

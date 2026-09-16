@@ -315,3 +315,74 @@
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUCNdj38CAGQOFBAB0sn9RaU2RTgAAAABJRU5ErkJggg==');
   cursor: row-resize;
 }
+
+/* SHACL validation controls and report */
+.sparql-divider {
+  width: 1px;
+  height: 18px;
+  background-color: #ced4da;
+  margin: 0 2px;
+}
+
+.sparql-option select {
+  font-size: 11px;
+  padding: 2px 4px;
+  max-width: 160px;
+}
+
+.validate-btn {
+  background-color: #6f42c1 !important;
+}
+
+.validate-btn:hover:not(:disabled) {
+  background-color: #59359a !important;
+}
+
+.results-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.results-actions button {
+  font-size: 11px;
+  padding: 2px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  background-color: #ffffff;
+  color: #495057;
+  cursor: pointer;
+}
+
+.results-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shacl-verdict.conforms {
+  color: #198754;
+}
+
+.shacl-verdict.fails {
+  color: #dc3545;
+}
+
+.shacl-table td {
+  vertical-align: top;
+}
+
+.shacl-table .shacl-severity {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shacl-violation .shacl-severity {
+  color: #dc3545;
+}
+
+.shacl-warning .shacl-severity {
+  color: #b45309;
+}
+
+.shacl-info .shacl-severity {
+  color: #0d6efd;
+}

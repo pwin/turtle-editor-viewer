@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { saveAs } from 'file-saver';
 import { useAppContext } from '@/store/AppProvider';
 import { RDFParser } from '@/services/rdf-parser';
+import { validateWithShapes } from '@/services/shacl-validator';
 import { useSparqlEngine } from './useSparqlEngine';
 import MonacoEditorComponent from '@/components/editor/MonacoEditorComponent';
 
@@ -14,7 +15,7 @@ import './SPARQLPanel.css';
 
 function SPARQLPanel() {
   const { state, dispatch } = useAppContext()
-  const { sparql } = state
+  const { sparql, shacl, editor } = state
   const [showResults, setShowResults] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   // Set when the last graph result was opened as an editor tab, so the
@@ -82,15 +83,59 @@ function SPARQLPanel() {
    * again here, rather than reusing the engine's quads, so the subject keys
    * are exactly the ones EditorPane will compute when it parses the tab.
    */
-  const openResultTab = async (turtle: string) => {
+  const openResultTab = async (turtle: string, title = `Result ${state.editor.resultCount + 1}`) => {
     const graph = await new RDFParser().parseRDF(turtle, 'turtle')
     if (graph.error || graph.quads.length === 0) return
-    const title = `Result ${state.editor.resultCount + 1}`
     dispatch({
       type: 'OPEN_EDITOR_TAB',
       payload: { title, content: turtle, language: 'turtle', selectedSubjects: graph.subjects },
     })
     setResultTab({ title, triples: graph.quads.length })
+  }
+
+  // ---- SHACL validation: the active tab against the shapes in another tab ----
+
+  const shapesTab = editor.tabs.find(tab => tab.id === shacl.shapesTabId)
+  const shapesIsActive = shapesTab !== undefined && shapesTab.id === editor.activeTabId
+  const canValidate = shapesTab !== undefined && !shapesIsActive && !shacl.isValidating
+  const validateHint = !shapesTab
+    ? 'Choose the tab that holds the shapes first (open one with + if needed)'
+    : shapesIsActive
+      ? 'Switch to the data tab: the active tab is validated against the shapes'
+      : `Validate the active tab against the shapes in "${shapesTab.title}"`
+
+  const handleValidate = async () => {
+    if (!shapesTab) return
+    try {
+      dispatch({ type: 'SET_SHACL_VALIDATING', payload: true })
+      dispatch({ type: 'SET_SHACL_ERROR', payload: undefined })
+      dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
+
+      const data = await new RDFParser().parseRDF(editor.content, editor.language)
+      if (data.error) throw new Error(`Data: ${data.error}`)
+      if (data.quads.length === 0) throw new Error('The active tab has no RDF to validate')
+      const shapes = await new RDFParser().parseRDF(shapesTab.content, shapesTab.language)
+      if (shapes.error) throw new Error(`Shapes (${shapesTab.title}): ${shapes.error}`)
+      if (shapes.quads.length === 0) throw new Error(`The shapes tab "${shapesTab.title}" has no triples`)
+
+      // Data prefixes win where the two declare the same name differently.
+      const report = await validateWithShapes(data.quads, shapes.quads, { ...shapes.prefixes, ...data.prefixes })
+      dispatch({ type: 'SET_SHACL_REPORT', payload: report })
+      setShowResults(true)
+    } catch (error: any) {
+      dispatch({ type: 'SET_SHACL_ERROR', payload: error.message || String(error) })
+    } finally {
+      dispatch({ type: 'SET_SHACL_VALIDATING', payload: false })
+    }
+  }
+
+  const handleOpenReportTab = () => {
+    if (shacl.report) openResultTab(shacl.report.turtle, 'Validation report')
+  }
+
+  const handleExportReport = () => {
+    if (!shacl.report) return
+    saveAs(new Blob([shacl.report.turtle], { type: 'text/turtle' }), 'validation-report.ttl')
   }
 
   const handleExecuteQuery = async () => {
@@ -99,6 +144,8 @@ function SPARQLPanel() {
     try {
       dispatch({ type: 'SET_SPARQL_EXECUTING', payload: true })
       dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
+      dispatch({ type: 'SET_SHACL_REPORT', payload: undefined })
+      dispatch({ type: 'SET_SHACL_ERROR', payload: undefined })
       setResultTab(null)
       
       // First parse the RDF content from editor
@@ -184,6 +231,8 @@ function SPARQLPanel() {
     setResultTab(null)
     dispatch({ type: 'SET_SPARQL_RESULTS', payload: undefined })
     dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
+    dispatch({ type: 'SET_SHACL_REPORT', payload: undefined })
+    dispatch({ type: 'SET_SHACL_ERROR', payload: undefined })
   }
 
   const handleExportQuery = () => {
@@ -265,8 +314,75 @@ function SPARQLPanel() {
     );
   };
 
+  const renderShaclReport = () => {
+    const report = shacl.report
+    if (!report || !showResults) return null
+    const short = (iri: string) => RDFParser.shrinkIRI(iri, report.prefixes)
+    // A path expression carries its IRIs in angle brackets; a plain path is a bare IRI.
+    const shortPath = (path: string | null) =>
+      path === null ? '' : path.includes('<') ? path.replace(/<([^>]+)>/g, (_, iri) => short(iri)) : short(path)
+    // "<shape IRI> › property N" for a nested property shape.
+    const shortShape = (shape: string | null) =>
+      shape === null ? '' : shape.replace(/^(\S+)/, iri => short(iri))
+    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+    const { Violation, Warning, Info } = report.counts
+
+    return (
+      <div className="sparql-results-container">
+        <div className="sparql-results">
+          <div className="results-header">
+            <h4>
+              <span className={`shacl-verdict ${report.conforms ? 'conforms' : 'fails'}`}>
+                {report.conforms ? '✓ Conforms' : '✗ Does not conform'}
+              </span>
+              {' '}· {plural(Violation, 'violation')}, {plural(Warning, 'warning')}, {Info} info
+              {' '}· {plural(report.shapeCount, 'shape')}
+            </h4>
+            <div className="results-actions">
+              <button onClick={handleOpenReportTab} disabled={report.results.length === 0} title="Open the SHACL validation report graph as a new editor tab">
+                Report as tab
+              </button>
+              <button onClick={handleExportReport} title="Save the validation report graph as Turtle">Export report</button>
+              <button onClick={handleClearResults} className="clear-btn">Clear</button>
+            </div>
+          </div>
+          <div className="results-table-container">
+            {report.results.length === 0 ? (
+              <p className="results-note">Every shape is satisfied.</p>
+            ) : (
+              <table className="results-table shacl-table">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Focus node</th>
+                    <th>Path</th>
+                    <th>Value</th>
+                    <th>Message</th>
+                    <th>Shape</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.results.map((r, index) => (
+                    <tr key={index} className={`shacl-${r.severity.toLowerCase()}`}>
+                      <td className="shacl-severity">{r.severity}</td>
+                      <td title={r.focusNode}>{short(r.focusNode)}</td>
+                      <td title={r.path ?? ''}>{shortPath(r.path)}</td>
+                      <td>{r.value ?? ''}</td>
+                      <td>{r.message}</td>
+                      <td title={r.sourceShape ?? ''}>{shortShape(r.sourceShape)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderResults = () => {
-    console.log('**** SPARQL Results:', sparql.results);
+    if (shacl.report) return renderShaclReport()
     if (!sparql.results || !showResults) return null
 
     // Handle serialized RDF result (CONSTRUCT/DESCRIBE)
@@ -349,7 +465,7 @@ function SPARQLPanel() {
   return (
     <div className="sparql-panel">
       <div className="sparql-header">
-        <h3>SPARQL Panel</h3>
+        <h3>SPARQL &amp; SHACL</h3>
         <div className="sparql-controls">
           <button onClick={handleAddPrefixes} disabled={sparql.isExecuting}>
             Add Prefixes
@@ -381,6 +497,22 @@ function SPARQLPanel() {
             />
             Graph results to tab
           </label>
+          <span className="sparql-divider" aria-hidden="true" />
+          <label className="sparql-option" title="The tab holding the SHACL shapes to validate the active tab against">
+            Shapes:
+            <select
+              value={shacl.shapesTabId ?? ''}
+              onChange={e => dispatch({ type: 'SET_SHACL_SHAPES_TAB', payload: e.target.value || undefined })}
+            >
+              <option value="">{editor.tabs.length > 1 ? 'choose a tab…' : 'open shapes in a new tab (+)'}</option>
+              {editor.tabs.map(tab => (
+                <option key={tab.id} value={tab.id}>{tab.title}</option>
+              ))}
+            </select>
+          </label>
+          <button onClick={handleValidate} disabled={!canValidate} className="validate-btn" title={validateHint}>
+            {shacl.isValidating ? 'Validating…' : 'Validate'}
+          </button>
         </div>
       </div>
       
@@ -399,6 +531,11 @@ function SPARQLPanel() {
         {sparql.error && (
           <div className="sparql-error">
             <strong>Error:</strong> {sparql.error}
+          </div>
+        )}
+        {shacl.error && (
+          <div className="sparql-error">
+            <strong>Validation error:</strong> {shacl.error}
           </div>
         )}
         

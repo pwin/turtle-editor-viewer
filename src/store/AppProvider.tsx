@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
-import type { AppState, EditorLanguage, EditorTheme } from '@/types'
+import type { AppState, EditorLanguage, EditorTheme, ShaclReport } from '@/types'
 import {
   SOURCE_TAB_ID,
   activateTab,
@@ -76,6 +76,12 @@ const initialState: AppState = {
     error: undefined,
     openResultsInTab: true,
   },
+  shacl: {
+    shapesTabId: undefined,
+    report: undefined,
+    isValidating: false,
+    error: undefined,
+  },
 }
 
 // Action types
@@ -104,10 +110,14 @@ type AppAction =
   | { type: 'SET_SPARQL_EXECUTING'; payload: boolean }
   | { type: 'SET_SPARQL_ERROR'; payload: string | undefined }
   | { type: 'SET_SPARQL_OPEN_RESULTS_IN_TAB'; payload: boolean }
+  | { type: 'SET_SHACL_SHAPES_TAB'; payload: string | undefined }
+  | { type: 'SET_SHACL_REPORT'; payload: ShaclReport | undefined }
+  | { type: 'SET_SHACL_VALIDATING'; payload: boolean }
+  | { type: 'SET_SHACL_ERROR'; payload: string | undefined }
   | { type: 'RESET_APP' }
 
 // Reducer
-function appReducer(state: AppState, action: AppAction): AppState {
+export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     // The document lives on the active tab; these write through to it and
     // the tab helpers refresh editor.content / editor.language to match.
@@ -121,8 +131,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return openTab(state, action.payload)
     case 'ACTIVATE_EDITOR_TAB':
       return activateTab(state, action.payload)
-    case 'CLOSE_EDITOR_TAB':
-      return closeTab(state, action.payload)
+    case 'CLOSE_EDITOR_TAB': {
+      const next = closeTab(state, action.payload)
+      // The shapes choice cannot outlive its tab.
+      const shapesTabOpen = next.editor.tabs.some(tab => tab.id === next.shacl.shapesTabId)
+      return shapesTabOpen ? next : { ...next, shacl: { ...next.shacl, shapesTabId: undefined } }
+    }
     case 'SET_EDITOR_THEME':
       return { ...state, editor: { ...state.editor, theme: action.payload } }
     case 'SET_EDITOR_FONT_SIZE':
@@ -166,6 +180,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, sparql: { ...state.sparql, error: action.payload } }
     case 'SET_SPARQL_OPEN_RESULTS_IN_TAB':
       return { ...state, sparql: { ...state.sparql, openResultsInTab: action.payload } }
+    case 'SET_SHACL_SHAPES_TAB':
+      return { ...state, shacl: { ...state.shacl, shapesTabId: action.payload } }
+    case 'SET_SHACL_REPORT':
+      return { ...state, shacl: { ...state.shacl, report: action.payload } }
+    case 'SET_SHACL_VALIDATING':
+      return { ...state, shacl: { ...state.shacl, isValidating: action.payload } }
+    case 'SET_SHACL_ERROR':
+      return { ...state, shacl: { ...state.shacl, error: action.payload } }
     case 'RESET_APP':
       return initialState
     default:
