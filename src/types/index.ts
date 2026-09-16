@@ -128,11 +128,49 @@ export interface FileOperation {
 }
 
 // App State
+// SHACL Types
+export type ShaclSeverity = 'Violation' | 'Warning' | 'Info'
+
+/** One validation result, with terms left as the engine reports them. */
+export interface ShaclResult {
+  severity: ShaclSeverity
+  focusNode: string
+  /** The property path as an IRI or a rendered path expression; null for node-level results. */
+  path: string | null
+  /** The offending value; null where the constraint is about absence (sh:minCount, sh:closed). */
+  value: string | null
+  message: string
+  /** The shape the result came from: an IRI, or "<parent> › property N" for a nested property shape. */
+  sourceShape: string | null
+  /** The constraint component IRI, e.g. sh:MinCountConstraintComponent. */
+  component: string
+}
+
+export interface ShaclReport {
+  conforms: boolean
+  results: ShaclResult[]
+  counts: Record<ShaclSeverity, number>
+  shapeCount: number
+  /** The full validation report graph as Turtle, for opening as a tab or saving. */
+  turtle: string
+  /** Prefixes for display, merged from the data and the shapes. */
+  prefixes: Record<string, string>
+}
+
+export interface ShaclState {
+  /** The editor tab holding the shapes graph. */
+  shapesTabId?: string
+  report?: ShaclReport
+  isValidating: boolean
+  error?: string
+}
+
 export interface AppState {
   editor: EditorState
   graph: GraphState
   rdf: RDFStore
   sparql: SPARQLQuery
+  shacl: ShaclState
 }
 
 // Component Props

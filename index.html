@@ -2,6 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      Content Security Policy. The browser enforces what the code review only
+      promised: scripts run from this origin alone (no inline scripts, no
+      javascript: URLs, no eval), and the page may connect only to itself and
+      to HTTP(S) endpoints, which is what SPARQL SERVICE and "Load URL" need.
+      'wasm-unsafe-eval' permits the SHACL engine's WebAssembly without
+      permitting JavaScript eval; blob: workers are how Monaco starts its
+      language workers; 'unsafe-inline' styles are Monaco's and React's own.
+      A stricter connect-src, say a list of approved endpoints, belongs in
+      the web server's header, which combines with this one.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' https: http:; object-src 'none'; base-uri 'self'; form-action 'none'" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Turtle Editor Viewer</title>

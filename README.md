@@ -10,6 +10,8 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 - **Human-readable Labels**: `rdfs:label` / `skos:prefLabel` in the subject list and on diagram nodes and edges, with collisions disambiguated
 - **SPARQL 1.2 Queries**: Execute SELECT, CONSTRUCT, DESCRIBE and ASK queries with Comunica; results in the SPARQL 1.2 JSON format
 - **Graph Results as Documents**: CONSTRUCT / DESCRIBE output opens in a new editor tab, deduplicated and using the source's prefixes, and is drawn straight away
+- **SHACL Validation**: validate the active tab against shapes in another tab with a WebAssembly build of the `holos` engine (SHACL Core + SHACL-SPARQL, RDF 1.2 data); report as a table, as a tab, or as Turtle
+- **Self-contained and network-silent**: every asset is served from the app's own origin; the only outbound requests are URLs the user loads and `SERVICE` clauses in queries they run, enforced by a Content Security Policy. See [SECURITY.md](SECURITY.md)
 - **Format Conversion**: Convert between RDF formats (Turtle ↔ RDF/XML ↔ JSON-LD)
 - **File Operations**: Load/save files locally and from URLs with CORS handling
 - **Modern UI**: Responsive, dark-themed interface built with React
@@ -115,6 +117,7 @@ npx prettier --write .
 Load content directly via URL parameters:
 - `?dot=<url>` - Load DOT or Turtle file from URL
 - `?rdfa=<url>` - Load a web page and extract the RDFa it contains
+- `?shapes=<url>` - Load a SHACL shapes file into its own tab and select it for validation
 
 Example:
 ```

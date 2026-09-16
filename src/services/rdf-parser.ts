@@ -158,8 +158,20 @@ export class RDFParser {
     try {
       const JsonLdParser = (await import('@rdfjs/parser-jsonld')).default
       const { Readable } = await import('readable-stream')
-      
-      const parser = new JsonLdParser()
+
+      // No network: a document whose @context is a URL would otherwise have
+      // the parser fetch it, a request the document chose rather than the
+      // user. Contexts have to be written into the document.
+      const parser = new JsonLdParser({
+        documentLoader: {
+          load: (url: string) =>
+            Promise.reject(
+              new Error(
+                `The remote JSON-LD context ${url} was not fetched: this app makes no network requests of its own. Paste the context into the document instead.`,
+              ),
+            ),
+        },
+      })
       const input = new Readable()
       input.push(content)
       input.push(null)

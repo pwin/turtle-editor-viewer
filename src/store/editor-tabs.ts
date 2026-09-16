@@ -17,6 +17,8 @@ export interface OpenTabPayload {
   language: EditorLanguage
   /** Defaults to "Result N". */
   title?: string
+  /** A fixed id for callers that need to refer to the tab afterwards; ignored if taken. */
+  id?: string
   /** Diagram selection to start with; empty means the usual auto-pick. */
   selectedSubjects?: string[]
 }
@@ -52,10 +54,14 @@ export function updateActiveTab(
 
 /** Add a tab after the others and make it active. */
 export function openTab(state: AppState, payload: OpenTabPayload): AppState {
-  const resultCount = state.editor.resultCount + 1
+  const n = state.editor.resultCount + 1
+  const requested = payload.id
+  const idIsFree = requested !== undefined && !state.editor.tabs.some(tab => tab.id === requested)
+  // A "Result N" number is only used up by a tab that takes it for its id or title.
+  const spendsNumber = !idIsFree || payload.title === undefined
   const tab: EditorTab = {
-    id: `result-${resultCount}`,
-    title: payload.title ?? `Result ${resultCount}`,
+    id: idIsFree ? requested : `result-${n}`,
+    title: payload.title ?? `Result ${n}`,
     content: payload.content,
     language: payload.language,
     selectedSubjects: payload.selectedSubjects ?? [],
@@ -66,7 +72,7 @@ export function openTab(state: AppState, payload: OpenTabPayload): AppState {
       ...state.editor,
       tabs: [...state.editor.tabs, tab],
       activeTabId: tab.id,
-      resultCount,
+      resultCount: spendsNumber ? n : state.editor.resultCount,
     },
   })
 }

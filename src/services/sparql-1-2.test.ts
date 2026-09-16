@@ -36,10 +36,14 @@ async function parse(): Promise<RDFQuad[]> {
   return result.quads
 }
 
+// One engine for the file: constructing it loads Comunica's actor graph, which
+// is the slow part, and the queries share nothing else.
+const engine = new QueryEngine()
+
 async function rows(quads: RDFQuad[], query: string): Promise<number> {
   const store = new Store()
   for (const q of quads) store.addQuad(q as never)
-  const r = await new QueryEngine().queryBindings(query, { sources: [store] })
+  const r = await engine.queryBindings(query, { sources: [store] })
   return (await r.toArray()).length
 }
 

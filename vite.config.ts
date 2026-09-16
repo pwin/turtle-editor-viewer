@@ -11,6 +11,9 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       stream: 'readable-stream',
       util: resolve(__dirname, 'src/util-polyfill.ts'),
+      // Network-free build: the prefix.cc lookup that Comunica's SHACLC
+      // serialiser depends on is replaced by a stub (see src/stubs).
+      '@jeswr/prefixcc': resolve(__dirname, 'src/stubs/prefixcc.ts'),
     },
   },
   define: {

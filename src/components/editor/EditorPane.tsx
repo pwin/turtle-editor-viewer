@@ -2,6 +2,7 @@ import { useEffect, useRef, Suspense, lazy } from 'react'
 import EditorToolbar from './EditorToolbar'
 import EditorTabs from './EditorTabs'
 import { useAppContext } from '@/store/AppProvider'
+import { SOURCE_TAB_ID } from '@/store/editor-tabs'
 import { RDFParser } from '@/services/rdf-parser'
 import { GraphGenerator } from '@/services/graph-generator'
 import { FileHandler } from '@/services/file-handler'
@@ -17,6 +18,8 @@ function EditorPane() {
     const checkURLParams = async () => {
       const dotUrl = FileHandler.getURLParameter('dot')
       const rdfaUrl = FileHandler.getURLParameter('rdfa')
+      const shapesUrl = FileHandler.getURLParameter('shapes')
+      const fileName = (url: string) => decodeURIComponent(url.split('?')[0].split('/').pop() || '')
 
       if (dotUrl) {
         dispatch({ type: 'SET_EDITOR_LOADING', payload: true })
@@ -24,6 +27,7 @@ function EditorPane() {
           const result = await FileHandler.loadWithCORS(dotUrl)
           if (!result.error) {
             dispatch({ type: 'SET_EDITOR_CONTENT', payload: result.content })
+            if (fileName(dotUrl)) dispatch({ type: 'RENAME_EDITOR_TAB', payload: fileName(dotUrl) })
             // Auto-detect language will happen in the next effect
           } else {
             console.error('Failed to load DOT URL:', result.error)
@@ -48,6 +52,26 @@ function EditorPane() {
             console.error('Exception loading RDFa URL:', e)
         } finally {
             dispatch({ type: 'SET_EDITOR_LOADING', payload: false })
+        }
+      }
+
+      // ?shapes=<url> opens a SHACL shapes graph in its own tab and selects it
+      // for validation, leaving the data tab in front.
+      if (shapesUrl) {
+        try {
+          const result = await FileHandler.loadWithCORS(shapesUrl)
+          if (!result.error) {
+            dispatch({
+              type: 'OPEN_EDITOR_TAB',
+              payload: { id: 'shapes', title: fileName(shapesUrl) || 'Shapes', content: result.content, language: 'turtle' },
+            })
+            dispatch({ type: 'SET_SHACL_SHAPES_TAB', payload: 'shapes' })
+            dispatch({ type: 'ACTIVATE_EDITOR_TAB', payload: SOURCE_TAB_ID })
+          } else {
+            console.error('Failed to load shapes URL:', result.error)
+          }
+        } catch (e) {
+          console.error('Exception loading shapes URL:', e)
         }
       }
     }
