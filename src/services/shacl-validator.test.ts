@@ -107,12 +107,18 @@ describe('validateWithShapes', () => {
     expect(report.results[report.results.length - 1].severity).toBe('Warning')
   })
 
-  it('a warning alone does not break conformance', async () => {
+  // Engine 0.3.0 moved to the rule the SHACL specification defines: a result
+  // of severity sh:Violation, sh:Warning or sh:Info breaks conformance unless
+  // the report declares sh:conformanceDisallows. Before that this engine
+  // counted violations alone, which is pySHACL's --allow-warnings behaviour
+  // rather than its default. A caller wanting the older, laxer reading can
+  // judge `counts` instead, which still reports every severity separately.
+  it('a warning alone breaks conformance, and is still reported', async () => {
     const data = await parse(`@prefix ex: <http://ex/> . ex:acme a ex:Shop ; ex:staff 50 .`)
     const shapes = await parse(SHAPES)
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
-    expect(report.counts.Warning).toBe(1)
+    expect(report.conforms).toBe(false)
+    expect(report.counts).toEqual({ Violation: 0, Warning: 1, Info: 0 })
   })
 
   it('returns the report graph as Turtle', async () => {
@@ -195,12 +201,14 @@ const courseAvailable = existsSync(join(COURSE, 'shapes.ttl'))
 describe.skipIf(!courseAvailable)('the SPARQL course shapes', () => {
   const load = (file: string) => parse(readFileSync(join(COURSE, file), 'utf8'))
 
-  it('shapes-advanced.ttl: the data conforms, with the two intended warnings', async () => {
+  it('shapes-advanced.ttl: no violations, and the two intended warnings', async () => {
     const data = await load('bookshop-trail-1.1.ttl')
     const shapes = await load('shapes-advanced.ttl')
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
     expect(report.counts).toEqual({ Violation: 0, Warning: 2, Info: 0 })
+    // Warnings break conformance from engine 0.3.0 on; the useful assertion
+    // about this data is that nothing in it is a violation.
+    expect(report.conforms).toBe(false)
   }, 30_000)
 
   it('shapes.ttl: the module 00 exercise, a shop with nobody in it, is caught', async () => {
@@ -219,6 +227,6 @@ describe.skipIf(!courseAvailable)('the SPARQL course shapes', () => {
     const data = await load('bookshop-trail-1.2.ttl')
     const shapes = await load('shapes-advanced.ttl')
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
+    expect(report.counts.Violation).toBe(0)
   }, 30_000)
 })

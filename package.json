@@ -33,7 +33,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "readable-stream": "^4.7.0",
-    "shacl-wasm": "^0.2.0",
+    "shacl-wasm": "^0.3.2",
     "split.js": "^1.6.5"
   },
   "devDependencies": {
