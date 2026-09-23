@@ -143,7 +143,7 @@ SHACL is the other way to ask a question of your data: instead of a query that r
 ### Reading the report
 The headline says **Conforms** or **Does not conform**, with the number of violations, warnings and infos and how many shapes were checked. Under it, one row per result:
 
-- **Severity**: `Violation` counts against conformance; `Warning` and `Info` don't, they're advice.
+- **Severity**: `Violation`, `Warning` or `Info`. All three count against conformance, as the SHACL specification has it; the headline's counts tell you which kind you have.
 - **Focus node**: the thing that was checked.
 - **Path**: the property the constraint is about, blank for constraints on the node as a whole. A path expression is written out (`^ex:employs`, `(rdfs:subClassOf)+`) rather than left as a blank node.
 - **Value**: the offending value, where there is one.
@@ -169,7 +169,7 @@ Two things change meaning under any inference: a `sh:closed` shape starts seeing
 A link can carry the setting: `?dot=<data>&shapes=<shapes>&inference=rules`.
 
 ### Things that catch people out
-- **A warning doesn't fail conformance.** A report can say *Conforms* and still list warnings and infos. Only violations count.
+- **A warning fails conformance.** A report with warnings or infos and no violations says *Does not conform*. That is the specification's default, and this engine's since 0.3.0; earlier versions, and pySHACL with `--allow-warnings`, count violations alone. If what matters is whether anything is a violation, read the counts rather than the headline.
 - **`sh:lessThan` between two `xsd:gYear` values** (`bs:born` before `bs:died`, say) is reported as a violation by this engine, even when the years are in the right order. SPARQL's `<` isn't defined for `gYear`, and SHACL treats a comparison it can't make as a failure; some other validators compare the years anyway. So `shapes.ttl` reports eight of these on the untouched data, all from the one shape. Any other findings are real.
 - **`SERVICE` is not allowed inside shapes.** A `sh:sparql` constraint that tries to reach a remote endpoint is rejected by the engine. Queries in the SPARQL editor can still use `SERVICE`.
 
