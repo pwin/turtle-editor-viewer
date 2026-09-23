@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
-import type { AppState, EditorLanguage, EditorTheme, ShaclReport } from '@/types'
+import type { AppState, EditorLanguage, EditorTheme, ShaclInference, ShaclReport } from '@/types'
 import {
   SOURCE_TAB_ID,
   activateTab,
@@ -78,6 +78,7 @@ const initialState: AppState = {
   },
   shacl: {
     shapesTabId: undefined,
+    inference: 'none',
     report: undefined,
     isValidating: false,
     error: undefined,
@@ -111,6 +112,7 @@ type AppAction =
   | { type: 'SET_SPARQL_ERROR'; payload: string | undefined }
   | { type: 'SET_SPARQL_OPEN_RESULTS_IN_TAB'; payload: boolean }
   | { type: 'SET_SHACL_SHAPES_TAB'; payload: string | undefined }
+  | { type: 'SET_SHACL_INFERENCE'; payload: ShaclInference }
   | { type: 'SET_SHACL_REPORT'; payload: ShaclReport | undefined }
   | { type: 'SET_SHACL_VALIDATING'; payload: boolean }
   | { type: 'SET_SHACL_ERROR'; payload: string | undefined }
@@ -182,6 +184,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, sparql: { ...state.sparql, openResultsInTab: action.payload } }
     case 'SET_SHACL_SHAPES_TAB':
       return { ...state, shacl: { ...state.shacl, shapesTabId: action.payload } }
+    case 'SET_SHACL_INFERENCE':
+      return { ...state, shacl: { ...state.shacl, inference: action.payload } }
     case 'SET_SHACL_REPORT':
       return { ...state, shacl: { ...state.shacl, report: action.payload } }
     case 'SET_SHACL_VALIDATING':

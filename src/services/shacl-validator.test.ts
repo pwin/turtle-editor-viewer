@@ -107,12 +107,18 @@ describe('validateWithShapes', () => {
     expect(report.results[report.results.length - 1].severity).toBe('Warning')
   })
 
-  it('a warning alone does not break conformance', async () => {
+  // Engine 0.3.0 moved to the rule the SHACL specification defines: a result
+  // of severity sh:Violation, sh:Warning or sh:Info breaks conformance unless
+  // the report declares sh:conformanceDisallows. Before that this engine
+  // counted violations alone, which is pySHACL's --allow-warnings behaviour
+  // rather than its default. A caller wanting the older, laxer reading can
+  // judge `counts` instead, which still reports every severity separately.
+  it('a warning alone breaks conformance, and is still reported', async () => {
     const data = await parse(`@prefix ex: <http://ex/> . ex:acme a ex:Shop ; ex:staff 50 .`)
     const shapes = await parse(SHAPES)
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
-    expect(report.counts.Warning).toBe(1)
+    expect(report.conforms).toBe(false)
+    expect(report.counts).toEqual({ Violation: 0, Warning: 1, Info: 0 })
   })
 
   it('returns the report graph as Turtle', async () => {
@@ -126,6 +132,47 @@ describe('validateWithShapes', () => {
     // Round-trips through the app's own parser, so it can open as a tab.
     const parsed = await parse(report.turtle)
     expect(parsed.quads.length).toBeGreaterThan(0)
+  })
+
+  it('runs SHACL-AF rules before validating when asked, and not otherwise', async () => {
+    const shapes = await parse(`
+      @prefix sh: <http://www.w3.org/ns/shacl#> .
+      @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+      @prefix ex: <http://ex/> .
+      ex:PersonShape a sh:NodeShape ; sh:targetClass ex:Person ;
+        sh:rule [ a sh:TripleRule ; sh:subject sh:this ; sh:predicate rdf:type ; sh:object ex:Agent ] .
+      ex:AgentShape a sh:NodeShape ; sh:targetClass ex:Agent ;
+        sh:property [ sh:path ex:name ; sh:minCount 1 ; sh:message "{$this} needs a name." ] .
+    `)
+    const data = await parse(`@prefix ex: <http://ex/> . ex:bob a ex:Person .`)
+
+    const asIs = await validateWithShapes(data.quads, shapes.quads, {}, 'none')
+    expect(asIs.conforms).toBe(true)
+    expect(asIs.inference).toBe('none')
+
+    const withRules = await validateWithShapes(data.quads, shapes.quads, {}, 'rules')
+    expect(withRules.conforms).toBe(false)
+    expect(withRules.inference).toBe('rules')
+    expect(withRules.results.map(r => r.message)).toEqual(['http://ex/bob needs a name.'])
+  })
+
+  it('validates the RDFS closure when asked', async () => {
+    const shapes = await parse(`
+      @prefix sh: <http://www.w3.org/ns/shacl#> .
+      @prefix ex: <http://ex/> .
+      ex:ParentShape a sh:NodeShape ; sh:targetSubjectsOf ex:parent ;
+        sh:property [ sh:path ex:name ; sh:minCount 1 ] .
+    `)
+    const data = await parse(`
+      @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+      @prefix ex: <http://ex/> .
+      ex:father rdfs:subPropertyOf ex:parent .
+      ex:bob ex:father ex:jim .
+    `)
+    // SHACL follows rdfs:subClassOf for targets and nothing else, so without
+    // inference bob is not a subject of ex:parent and nothing is checked.
+    expect((await validateWithShapes(data.quads, shapes.quads, {}, 'none')).results).toHaveLength(0)
+    expect((await validateWithShapes(data.quads, shapes.quads, {}, 'rdfs')).results).toHaveLength(1)
   })
 
   it('accepts RDF 1.2 data', async () => {
@@ -154,12 +201,14 @@ const courseAvailable = existsSync(join(COURSE, 'shapes.ttl'))
 describe.skipIf(!courseAvailable)('the SPARQL course shapes', () => {
   const load = (file: string) => parse(readFileSync(join(COURSE, file), 'utf8'))
 
-  it('shapes-advanced.ttl: the data conforms, with the two intended warnings', async () => {
+  it('shapes-advanced.ttl: no violations, and the two intended warnings', async () => {
     const data = await load('bookshop-trail-1.1.ttl')
     const shapes = await load('shapes-advanced.ttl')
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
     expect(report.counts).toEqual({ Violation: 0, Warning: 2, Info: 0 })
+    // Warnings break conformance from engine 0.3.0 on; the useful assertion
+    // about this data is that nothing in it is a violation.
+    expect(report.conforms).toBe(false)
   }, 30_000)
 
   it('shapes.ttl: the module 00 exercise, a shop with nobody in it, is caught', async () => {
@@ -178,6 +227,6 @@ describe.skipIf(!courseAvailable)('the SPARQL course shapes', () => {
     const data = await load('bookshop-trail-1.2.ttl')
     const shapes = await load('shapes-advanced.ttl')
     const report = await validateWithShapes(data.quads, shapes.quads)
-    expect(report.conforms).toBe(true)
+    expect(report.counts.Violation).toBe(0)
   }, 30_000)
 })

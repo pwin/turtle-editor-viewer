@@ -1,6 +1,6 @@
 import { DataFactory, Writer } from 'n3'
 import type { Validator } from 'shacl-wasm'
-import type { RDFQuad, ShaclReport, ShaclResult, ShaclSeverity } from '@/types'
+import type { RDFQuad, ShaclInference, ShaclReport, ShaclResult, ShaclSeverity } from '@/types'
 import { loadShaclEngine } from './shacl-engine'
 import { renderPathExpression } from './shacl-path'
 
@@ -13,6 +13,12 @@ import { renderPathExpression } from './shacl-path'
  * Everything runs in the page. The data and the shapes are the quads the
  * editor already parsed, handed over as N-Triples text; nothing is fetched
  * and nothing is sent.
+ *
+ * `inference` is passed straight to the engine: `none` validates the data as
+ * it stands, `rdfs` the RDFS closure of it, and `rules` / `rules-iterated`
+ * run the shapes graph's SHACL-AF rules first, so a result can depend on a
+ * triple that was inferred rather than asserted. The data in the tab is never
+ * changed; the expanded graph lives only for the run.
  */
 
 const SH = 'http://www.w3.org/ns/shacl#'
@@ -61,9 +67,10 @@ export async function validateWithShapes(
   data: RDFQuad[],
   shapes: RDFQuad[],
   prefixes: Record<string, string> = {},
+  inference: ShaclInference = 'none',
 ): Promise<ShaclReport> {
   const shapesGraph = await compileShapes(shapes)
-  const report = shapesGraph.validator.validateTurtle(toNTriples(data), BASE, 'none')
+  const report = shapesGraph.validator.validateTurtle(toNTriples(data), BASE, inference)
   try {
     const results = (report.results as EngineResult[]).map(r => toResult(r, shapesGraph))
     results.sort(
@@ -77,6 +84,7 @@ export async function validateWithShapes(
     for (const r of results) counts[r.severity]++
     return {
       conforms: report.conforms,
+      inference,
       results,
       counts,
       shapeCount: shapesGraph.shapeCount,
