@@ -61,7 +61,7 @@ The diagram is drawn with Graphviz from the subjects you pick.
 3. Type in the **Filter subjects** box to narrow the list. It matches on the label as well as the IRI, so either will find it.
 4. **Get All** in the Graph toolbar draws the first ten subjects. When you load a new file the first ten are picked for you as well, so there's something to look at straight away.
 
-**Show labels**, next to the filter box, swaps IRIs for names. If a subject has an `rdfs:label` or `skos:prefLabel`, the list shows that instead of `ex:shop-0042`. Where two subjects share a name the IRI is added after it so you can still tell them apart, and hovering over any entry shows its full IRI.
+**Show labels**, next to the filter box, swaps IRIs for names. If a subject has an `rdfs:label` or `skos:prefLabel`, the list shows that instead of `ex:shop-0042`. Where two subjects share a name the IRI is added after it so you can still tell them apart, and hovering over any entry shows its full IRI. It's on when the page opens; untick it to list IRIs.
 
 Blank nodes show up too, when they're the top of a structure rather than nested inside another subject. Ones with a label in the file (`_:g_00`) are listed under that label; anonymous ones (`[] a owl:AllDisjointClasses`) are numbered `anon-0`, `anon-1`… in the order they appear. Those names stay put while you edit, so a blank node you've picked stays drawn.
 

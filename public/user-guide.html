@@ -133,7 +133,7 @@
             <li>Type in the <strong>Filter subjects</strong> box to narrow the list. It matches on the label as well as the IRI, so either will find it.</li>
             <li><strong>Get All</strong> in the Graph toolbar draws the first ten subjects. When you load a new file the first ten are picked for you as well, so there's something to look at straight away.</li>
         </ol>
-        <p><strong>Show labels</strong>, next to the filter box, swaps IRIs for names. If a subject has an <code>rdfs:label</code> or <code>skos:prefLabel</code>, the list shows that instead of <code>ex:shop-0042</code>. Where two subjects share a name the IRI is added after it so you can still tell them apart, and hovering over any entry shows its full IRI.</p>
+        <p><strong>Show labels</strong>, next to the filter box, swaps IRIs for names. If a subject has an <code>rdfs:label</code> or <code>skos:prefLabel</code>, the list shows that instead of <code>ex:shop-0042</code>. Where two subjects share a name the IRI is added after it so you can still tell them apart, and hovering over any entry shows its full IRI. It's on when the page opens; untick it to list IRIs.</p>
         <p>Blank nodes show up too, when they're the top of a structure rather than nested inside another subject. Ones with a label in the file (<code>_:g_00</code>) are listed under that label; anonymous ones (<code>[] a owl:AllDisjointClasses</code>) are numbered <code>anon-0</code>, <code>anon-1</code>… in the order they appear. Those names stay put while you edit, so a blank node you've picked stays drawn.</p>
 
         <h3>Options</h3>
@@ -217,7 +217,7 @@
         <h3>Reading the report</h3>
         <p>The headline says <strong>Conforms</strong> or <strong>Does not conform</strong>, with the number of violations, warnings and infos and how many shapes were checked. Under it, one row per result:</p>
         <ul>
-            <li><strong>Severity</strong>: <code>Violation</code> counts against conformance; <code>Warning</code> and <code>Info</code> don't, they're advice.</li>
+            <li><strong>Severity</strong>: <code>Violation</code>, <code>Warning</code> or <code>Info</code>. All three count against conformance, as the SHACL specification has it; the headline's counts tell you which kind you have.</li>
             <li><strong>Focus node</strong>: the thing that was checked.</li>
             <li><strong>Path</strong>: the property the constraint is about, blank for constraints on the node as a whole. A path expression is written out (<code>^ex:employs</code>, <code>(rdfs:subClassOf)+</code>) rather than left as a blank node.</li>
             <li><strong>Value</strong>: the offending value, where there is one.</li>
@@ -231,7 +231,7 @@
 
         <h3>Things that catch people out</h3>
         <ul>
-            <li><strong>A warning doesn't fail conformance.</strong> A report can say <em>Conforms</em> and still list warnings and infos. Only violations count.</li>
+            <li><strong>A warning fails conformance.</strong> A report with warnings or infos and no violations says <em>Does not conform</em>. That is the specification's default, and this engine's since 0.3.0; earlier versions, and pySHACL with <code>--allow-warnings</code>, count violations alone. If what matters is whether anything is a violation, read the counts rather than the headline.</li>
             <li><strong><code>sh:lessThan</code> between two <code>xsd:gYear</code> values</strong> (<code>bs:born</code> before <code>bs:died</code>, say) is reported as a violation by this engine, even when the years are in the right order. SPARQL's <code>&lt;</code> isn't defined for <code>gYear</code>, and SHACL treats a comparison it can't make as a failure; some other validators compare the years anyway. So <code>shapes.ttl</code> reports eight of these on the untouched data, all from the one shape. Any other findings are real.</li>
             <li><strong><code>SERVICE</code> is not allowed inside shapes.</strong> A <code>sh:sparql</code> constraint that tries to reach a remote endpoint is rejected by the engine. Queries in the SPARQL editor can still use <code>SERVICE</code>.</li>
         </ul>
