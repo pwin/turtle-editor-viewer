@@ -3,6 +3,7 @@ import { Parser, Writer } from 'n3';
 import type { RDFQuad } from '@/types';
 import { quadsToTurtle, termToResult, type ResultRow } from '@/utils/sparql-results';
 import { loadHolosEngine } from '@/services/holos-engine';
+import { runFederatedQuery, type FederatableStore } from '@/services/federation';
 
 export interface SparqlResult {
   head?: { vars: string[] };
@@ -11,8 +12,8 @@ export interface SparqlResult {
   booleanResult?: boolean;
 }
 
-/** As much of holos-wasm as this hook uses. */
-interface HolosStore {
+/** As much of holos-wasm as this hook uses beyond what federation needs. */
+interface HolosStore extends FederatableStore {
   load(text: string, format: string, base?: string): number;
   /** A boolean for ASK, N-Triples strings for CONSTRUCT/DESCRIBE, term rows for SELECT. */
   query(query: string, base?: string): unknown;
@@ -111,7 +112,7 @@ export function useSparqlEngine() {
       // No DESCRIBE rewriting: holosdb answers DESCRIBE itself. The previous engine did not,
       // so this hook turned `DESCRIBE <uri>` into a CONSTRUCT with a regex, which got the
       // common shapes right and quietly mangled the rest.
-      const out = store.query(query, undefined);
+      const out = await runFederatedQuery(store, query);
 
       if (typeof out === 'boolean') {
         const resultObj = { booleanResult: out };
