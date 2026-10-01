@@ -14,8 +14,9 @@ import wasmUrl from 'holos-wasm/holos_wasm_bg.wasm?url'
  *
  * Self-contained by construction. The .wasm is a Vite asset served from the app's own origin
  * (the `?url` import), fetched once on first use, never from a CDN. The engine has no HTTP
- * client of its own, which is why `SERVICE` does not work: a federated query cannot reach
- * anywhere from inside this module, and that is a property of the build rather than a setting.
+ * client of its own either: a query cannot reach anywhere from inside this module, which is a
+ * property of the build rather than a setting, and is why `SERVICE` is fetched by the host --
+ * see `federation.ts`, where the decision about what may be called is readable.
  *
  * # Why this engine
  *

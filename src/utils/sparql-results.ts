@@ -63,6 +63,33 @@ export function termToResult(term: RDFTerm): ResultTerm {
 }
 
 /**
+ * The variables a SELECT result's `head.vars` must name, in projection order.
+ *
+ * The rows cannot answer this on their own. An unbound variable is absent from a row rather
+ * than null, so a variable unbound in *every* row is invisible in the rows, and a result with
+ * no rows at all still has columns -- while `head.vars` lists every projected variable either
+ * way. holosdb says so directly: a SELECT result array carries `variables`, the projection as
+ * the engine parsed it, which cannot disagree with how the query was evaluated the way a
+ * second reading of the query text can.
+ *
+ * The row scan behind it is for a result that does not carry them, and gets the order right
+ * for the same reason -- a row is built in the query's own variable order -- but can only name
+ * variables some row bound.
+ */
+export function resultVars(result: readonly Record<string, unknown>[]): string[] {
+  const declared = (result as { variables?: unknown }).variables
+  if (Array.isArray(declared) && declared.every((v) => typeof v === 'string')) {
+    return declared as string[]
+  }
+
+  const seen: string[] = []
+  for (const row of result) {
+    for (const name of Object.keys(row)) if (!seen.includes(name)) seen.push(name)
+  }
+  return seen
+}
+
+/**
  * Flatten a result value to one line for a table cell. Language-tagged
  * literals show their tag, including an RDF 1.2 direction (`@ar--rtl`), so a
  * query about text direction has something visible to point at. Triple terms
@@ -102,10 +129,12 @@ export function resultTermLexical(term: ResultTerm | undefined): string {
 /**
  * Serialise a CONSTRUCT or DESCRIBE result as Turtle.
  *
- * The result of a CONSTRUCT is a graph, so a set of triples, but the engine
- * streams one instantiation of the template per matching solution: a label
- * shared by several solutions arrives once per solution. Collecting the
- * stream into a store collapses those before writing. The editor's prefixes
+ * The result of a CONSTRUCT is a graph, so a set of triples, and holosdb
+ * returns one: duplicate instantiations of the template are already
+ * collapsed, which was the measured difference from Comunica on five of the
+ * course's queries. Collecting into a store anyway costs a single pass and
+ * keeps deduplication a property of this function rather than of whichever
+ * engine is behind it. The editor's prefixes
  * are applied so the output reads like the data it was built from, triple
  * terms included, but only the ones the result actually uses are declared.
  */

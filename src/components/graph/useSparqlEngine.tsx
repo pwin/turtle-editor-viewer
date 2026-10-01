@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Parser, Writer } from 'n3';
 import type { RDFQuad } from '@/types';
-import { quadsToTurtle, termToResult, type ResultRow } from '@/utils/sparql-results';
+import { quadsToTurtle, resultVars, termToResult, type ResultRow } from '@/utils/sparql-results';
 import { loadHolosEngine } from '@/services/holos-engine';
 import { runFederatedQuery, type FederatableStore } from '@/services/federation';
 
@@ -22,7 +22,14 @@ interface HolosStore extends FederatableStore {
 }
 
 /** A SELECT row: variable name to a term in rdf-js shape, with unbound variables absent. */
-type HolosTerm = { termType: string; value: string; language?: string; datatype?: { value: string } };
+type HolosTerm = {
+  termType: string;
+  value: string;
+  language?: string;
+  /** `'ltr'`, `'rtl'`, or empty when the literal has none. Supplied since holos-wasm 0.19.0. */
+  direction?: string;
+  datatype?: { value: string };
+};
 type HolosRow = Record<string, HolosTerm>;
 
 /**
@@ -55,11 +62,18 @@ type HolosRow = Record<string, HolosTerm>;
  * And it is one wasm module with no transitive dependencies, where Comunica brought a tree
  * that could not load at all on Node 20 (`undici@8` requires Node >= 22.19).
  *
- * # What it cannot do
+ * # `SERVICE`, and who fetches
  *
- * `SERVICE`. A wasm build has no HTTP client, so the three DBpedia queries in chapter 08
- * cannot run. Routing SERVICE through the host's `fetch` is how that gets fixed, and it is
- * not done yet.
+ * A wasm build has no HTTP client, so the engine cannot reach an endpoint however the query is
+ * written. It instead reports the `(endpoint, query)` pairs a federated query wants, and
+ * `services/federation.ts` fetches them against an allow-list and hands them back until nothing
+ * is outstanding -- see `runFederatedQuery` for why a pass with anything pending is discarded
+ * rather than shown.
+ *
+ * What remains missing is the *bound* join. The engine sends a `SERVICE` clause's bare pattern,
+ * with no bindings from the join above it, so a clause that is only selective once those
+ * bindings exist -- `q105` in the course -- asks the endpoint a question too broad to answer
+ * usefully. That is pushdown in the engine, not something a host can add.
  */
 export function useSparqlEngine() {
   const [results, setResults] = useState<SparqlResult | null>(null);
@@ -137,7 +151,7 @@ export function useSparqlEngine() {
       }
 
       const rows = out as HolosRow[];
-      const vars = projectedVars(rows, query);
+      const vars = resultVars(rows);
       const bindings: ResultRow[] = rows.map((row) => {
         const encoded: ResultRow = {};
         for (const v of vars) {
@@ -163,41 +177,4 @@ export function useSparqlEngine() {
   }, [storeFor]);
 
   return { executeQuery, results, error, isExecuting };
-}
-
-/**
- * The variables a SELECT projected, in projection order.
- *
- * The binding returns one object per row with unbound variables *absent*, which is right for a
- * row and not enough for a header: `head.vars` in the SPARQL results JSON format lists every
- * projected variable, including one that is unbound in every row, and a result with no rows at
- * all still has columns.
- *
- * So the rows answer where they can -- holosdb builds each row in the query's own variable
- * order, so first-appearance order is projection order -- and the query text answers what the
- * rows cannot show. A `variables` field on the binding's SELECT result would remove the
- * fallback entirely; that belongs in the engine rather than here, and is not there yet.
- */
-export function projectedVars(rows: HolosRow[], query: string): string[] {
-  const seen: string[] = [];
-  for (const row of rows) {
-    for (const v of Object.keys(row)) if (!seen.includes(v)) seen.push(v);
-  }
-
-  const projection = /select\s+(?:distinct\s+|reduced\s+)?(.+?)\s+where/is.exec(query)?.[1]?.trim();
-  if (!projection || projection === '*') return seen;
-
-  // `(COUNT(*) AS ?n)` and friends bind the name after AS; a bare `?x` binds itself. Anything
-  // else in the projection is not a column.
-  const declared: string[] = [];
-  for (const match of projection.matchAll(/\bas\s+\?([a-zA-Z0-9_]+)|\?([a-zA-Z0-9_]+)/gi)) {
-    const name = match[1] ?? match[2];
-    if (name && !declared.includes(name)) declared.push(name);
-  }
-
-  // Declared order first, then anything the rows carry that the projection did not name --
-  // which should be nothing, and is appended rather than dropped if it ever happens.
-  const out = [...declared];
-  for (const v of seen) if (!out.includes(v)) out.push(v);
-  return out.length > 0 ? out : seen;
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { DataFactory, Parser } from 'n3'
-import { formatResultTerm, quadsToTurtle, resultTermLexical, termToResult } from './sparql-results'
+import {
+  formatResultTerm,
+  quadsToTurtle,
+  resultTermLexical,
+  resultVars,
+  termToResult,
+} from './sparql-results'
 
 const { namedNode, blankNode, literal, quad } = DataFactory
 
@@ -195,5 +201,52 @@ describe('quadsToTurtle', () => {
     it('leaves no header for an empty result', async () => {
       expect(await quadsToTurtle([], { ex: 'http://ex/' })).toBe('')
     })
+  })
+})
+
+// The two cases that put `variables` on the engine's result rather than a regex over the query
+// text: a column no row can show, and a result with no rows to show one.
+describe('resultVars', () => {
+  /** A SELECT result as holos-wasm returns it: rows, with the projection on the array. */
+  function result(rows: Record<string, unknown>[], variables?: string[]) {
+    if (variables) Object.defineProperty(rows, 'variables', { value: variables })
+    return rows
+  }
+
+  it('takes the projection from the result, in the engine order', () => {
+    const rows = result([{ s: 1, l: 2 }], ['s', 'l'])
+    expect(resultVars(rows)).toEqual(['s', 'l'])
+  })
+
+  it('names a variable that is unbound in every row', () => {
+    const rows = result([{ s: 1 }, { s: 2 }], ['s', 'nothing'])
+    expect(resultVars(rows)).toEqual(['s', 'nothing'])
+  })
+
+  it('gives an empty result its columns', () => {
+    expect(resultVars(result([], ['a', 'b']))).toEqual(['a', 'b'])
+  })
+
+  // Projection order is the engine's, not the rows'. A row happening to enumerate its keys
+  // differently must not reorder the header.
+  it('prefers the projection over the order the rows happen to have', () => {
+    const rows = result([{ l: 2, s: 1 }], ['s', 'l'])
+    expect(resultVars(rows)).toEqual(['s', 'l'])
+  })
+
+  // The fallback, for a result that does not carry them. It can only name what some row bound,
+  // which is the whole reason the engine was asked to supply them.
+  it('falls back to first-appearance order across the rows', () => {
+    expect(resultVars(result([{ b: 1 }, { a: 1, b: 2 }, { c: 1 }]))).toEqual(['b', 'a', 'c'])
+  })
+
+  it('falls back rather than trusting a variables field that is not strings', () => {
+    const rows = result([{ a: 1 }], undefined)
+    Object.defineProperty(rows, 'variables', { value: [1, 2] })
+    expect(resultVars(rows)).toEqual(['a'])
+  })
+
+  it('has no columns for an empty result that carries no projection', () => {
+    expect(resultVars(result([]))).toEqual([])
   })
 })
