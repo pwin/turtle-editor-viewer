@@ -9,8 +9,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { Store } from 'n3'
-import { QueryEngine } from '@comunica/query-sparql'
+import { Writer } from 'n3'
 import type { RDFQuad } from '@/types'
 import { RDFParser } from './rdf-parser'
 
@@ -19,9 +18,10 @@ const DATA = join(COURSE, 'data/bookshop-trail-1.2.ttl')
 const QDIR = join(COURSE, 'queries/11-sparql-1-2')
 const available = existsSync(DATA) && existsSync(QDIR)
 
-// Each test parses the 6,000-line course file and runs Comunica on it, which
-// can take well over Vitest's 5 s default when the suite runs alongside the
-// other files. Not a correctness signal, so give it room.
+// Each test parses the 6,000-line course file, which can take well over Vitest's
+// 5 s default when the suite runs alongside the other files. Not a correctness
+// signal, so give it room. The engine itself is no longer the slow part: the whole
+// course corpus answers in under half a second (scripts/engine-comparison.mjs).
 const TIMEOUT = 30_000
 
 const queries = available
@@ -36,15 +36,29 @@ async function parse(): Promise<RDFQuad[]> {
   return result.quads
 }
 
-// One engine for the file: constructing it loads Comunica's actor graph, which
-// is the slow part, and the queries share nothing else.
-const engine = new QueryEngine()
-
+// holosdb, the engine the app itself runs -- so this file tests the shipped pipeline
+// rather than a second engine that happens to be installed. It also means the file
+// loads at all: it previously imported Comunica, whose `undici@8` needs Node >= 22.19
+// and throws on import below that, so on Node 20 this entire suite was silently absent
+// rather than passing.
 async function rows(quads: RDFQuad[], query: string): Promise<number> {
-  const store = new Store()
-  for (const q of quads) store.addQuad(q as never)
-  const r = await engine.queryBindings(query, { sources: [store] })
-  return (await r.toArray()).length
+  const holos = await import('holos-wasm-node')
+  const store = new holos.Store()
+  try {
+    const writer = new Writer({ format: 'N-Quads' })
+    for (const q of quads) writer.addQuad(q as never)
+    let text = ''
+    writer.end((err: Error | null, result: string) => {
+      if (err) throw err
+      text = result
+    })
+    store.load(text, 'nquads', undefined)
+    const out = store.query(query, undefined) as unknown
+    if (!Array.isArray(out)) throw new Error(`expected SELECT rows, got ${typeof out}`)
+    return out.length
+  } finally {
+    ;(store as { free?: () => void }).free?.()
+  }
 }
 
 describe.skipIf(!available)('RDF 1.2 terms survive the app parser', () => {

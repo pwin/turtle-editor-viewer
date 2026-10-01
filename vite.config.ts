@@ -37,7 +37,10 @@ export default defineConfig({
           // monaco-editor itself is loaded from the CDN at runtime by
           // @monaco-editor/react, so only the wrapper belongs in the bundle.
           editor: ['@monaco-editor/react'],
-          sparql: ['@comunica/query-sparql'],
+          // Not holos-wasm: it is loaded by hand from its glue module and a `?url` asset
+          // (see services/holos-engine.ts), so naming it here would make Rollup treat the
+          // unbuildable entry module as a chunk entry.
+          sparql: ['holos-wasm/holos_wasm_bg.js'],
           utils: ['file-saver'],
         },
       },
@@ -45,6 +48,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000, // Increase limit to suppress warnings for large chunks like monaco
   },
   optimizeDeps: {
-    include: ['@monaco-editor/react', 'n3', '@comunica/query-sparql'],
+    include: ['@monaco-editor/react', 'n3'],
+    // holos-wasm is deliberately not pre-bundled: it is a wasm-bindgen ESM package whose
+    // glue resolves its .wasm relative to itself, and esbuild's dep optimiser rewrites that
+    // path. Vite handles it correctly as a normal dependency.
+    exclude: ['holos-wasm'],
   },
 })

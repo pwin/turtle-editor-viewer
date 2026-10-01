@@ -9,3 +9,10 @@ declare module 'shacl-wasm/shacl_wasm_bg.js' {
   export const Validator: typeof import('shacl-wasm').Validator;
   export const Report: typeof import('shacl-wasm').Report;
 }
+
+// The same arrangement for `holos-wasm`, the SPARQL engine, for the same reason --
+// see services/holos-engine.ts.
+declare module 'holos-wasm/holos_wasm_bg.js' {
+  export function __wbg_set_wasm(exports: WebAssembly.Exports): void;
+  export const Store: typeof import('holos-wasm').Store;
+}
