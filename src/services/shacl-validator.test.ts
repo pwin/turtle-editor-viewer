@@ -193,6 +193,30 @@ describe('fillMessageTemplate', () => {
   it('leaves a placeholder alone when the result has no value for it', () => {
     expect(fillMessageTemplate('{$this}: {$value} of {$maxCount}', 's', null, null)).toBe('s: {$value} of {$maxCount}')
   })
+
+  // A blank node's label is the engine's internal handle: it names nothing a reader can look
+  // up, and it differs between runs and between engines. Most labelled things in a real
+  // ontology are anonymous -- restrictions and axioms -- so a shape saying `{$this}` would
+  // otherwise report "A label on _:b3 has no language tag".
+  it('names an anonymous focus node as such, not by its label', () => {
+    expect(fillMessageTemplate('A label on {$this} has no tag', '_:b3', null, null))
+      .toBe('A label on [a blank node] has no tag')
+  })
+
+  it('follows through to sh:value, which SHACL defaults to the focus node', () => {
+    expect(fillMessageTemplate('{$this} carries {$value}', '_:b3', null, '_:b3'))
+      .toBe('[a blank node] carries [a blank node]')
+  })
+
+  it('leaves a value that is not the focus node alone', () => {
+    expect(fillMessageTemplate('{$this} carries {$value}', '_:b3', null, 'Chassis'))
+      .toBe('[a blank node] carries Chassis')
+  })
+
+  it('does not touch a focus node that has an IRI', () => {
+    expect(fillMessageTemplate('A label on {$this} has no tag', 'http://ex/Chassis', null, null))
+      .toBe('A label on http://ex/Chassis has no tag')
+  })
 })
 
 const COURSE = 'C:/repos/SPARQL_Course/data'

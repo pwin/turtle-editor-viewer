@@ -141,12 +141,26 @@ function toResult(r: EngineResult, shapesGraph: CompiledShapes): ShaclResult {
   }
 }
 
+/** What a message calls a focus node that has no name of its own. */
+export const ANONYMOUS_FOCUS = '[a blank node]'
+
 /**
  * sh:message is a template: SHACL says `{$this}`, `{$path}` and `{$value}`
  * (or the `{?name}` spelling) stand for the result's focus node, path and
  * value. The engine returns the text as written, so they are filled here.
  * Constraint parameters such as `{$maxCount}` are not in the result and are
  * left as they are rather than replaced with something wrong.
+ *
+ * An anonymous focus node is named as such rather than by its label. A blank
+ * node's label is the engine's internal handle for it: it names nothing a
+ * reader can look up, it differs between runs, and it differs between engines.
+ * Most labelled things in a real ontology are anonymous -- restrictions and
+ * axioms -- so a shape whose message says `{$this}` would otherwise report
+ * "A label on _:b3 has no language tag", which tells a reader nothing.
+ *
+ * `sh:value` follows, because SHACL defaults it to the focus node when a
+ * constraint binds no value of its own, in which case both placeholders are
+ * holding the same label.
  */
 export function fillMessageTemplate(
   message: string,
@@ -155,9 +169,12 @@ export function fillMessageTemplate(
   value: string | null,
 ): string {
   if (!message.includes('{')) return message
-  let out = message.replace(/\{[$?]this\}/g, () => focusNode)
+  const anonymous = focusNode.startsWith('_:')
+  const focusText = anonymous ? ANONYMOUS_FOCUS : focusNode
+  const valueText = anonymous && value === focusNode ? ANONYMOUS_FOCUS : value
+  let out = message.replace(/\{[$?]this\}/g, () => focusText)
   if (path !== null) out = out.replace(/\{[$?]path\}/g, () => path)
-  if (value !== null) out = out.replace(/\{[$?]value\}/g, () => value)
+  if (valueText !== null) out = out.replace(/\{[$?]value\}/g, () => valueText)
   return out
 }
 
