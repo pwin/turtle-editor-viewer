@@ -250,3 +250,26 @@ describe('resultVars', () => {
     expect(resultVars(result([]))).toEqual([])
   })
 })
+
+// What the engine actually returned before holos-wasm 0.20.0, which took out the results pane.
+describe('termToResult on a triple term', () => {
+  it('decomposes one whose parts are present', () => {
+    const t = quad(namedNode('http://ex/s'), namedNode('http://ex/p'), literal('x'))
+    expect(termToResult(t)).toEqual({
+      type: 'triple',
+      value: {
+        subject: { type: 'uri', value: 'http://ex/s' },
+        predicate: { type: 'uri', value: 'http://ex/p' },
+        object: { type: 'literal', value: 'x' },
+      },
+    })
+  })
+
+  it('falls back to the text rather than throwing when the parts are missing', () => {
+    const partial = { termType: 'Quad', value: '<<( <http://ex/s> <http://ex/p> "x" )>>' }
+    expect(termToResult(partial as never)).toEqual({
+      type: 'literal',
+      value: '<<( <http://ex/s> <http://ex/p> "x" )>>',
+    })
+  })
+})

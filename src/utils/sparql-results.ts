@@ -47,7 +47,15 @@ export function termToResult(term: RDFTerm): ResultTerm {
       }
       return out
     }
-    case 'Quad':
+    case 'Quad': {
+      // A triple term whose parts are missing is not something rdf-js allows, and holos-wasm
+      // did it anyway until 0.20.0: `termType: 'Quad'` with the whole `<<( ... )>>` rendering
+      // in `value` and no subject. Reading `.subject` of that threw, which took out the whole
+      // results pane on the course's q64. Falling back to the text keeps a term the pane
+      // cannot decompose readable instead of fatal.
+      if (!term.subject || !term.predicate || !term.object) {
+        return { type: 'literal', value: term.value }
+      }
       return {
         type: 'triple',
         value: {
@@ -56,6 +64,7 @@ export function termToResult(term: RDFTerm): ResultTerm {
           object: termToResult(term.object),
         },
       }
+    }
     default:
       // Variables and DefaultGraph never reach a result binding.
       return { type: 'literal', value: term.value }
