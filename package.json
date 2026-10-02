@@ -1,6 +1,6 @@
 {
   "name": "turtle-editor-viewer",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "description": "A modern React + TypeScript RDF/Turtle editor and visualizer",
   "scripts": {
