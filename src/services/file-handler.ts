@@ -1,5 +1,28 @@
 // import type { FileOperation } from '@/types'
 
+/**
+ * Says what a failed fetch means, without guessing at one cause.
+ *
+ * `fetch` rejects with the same opaque TypeError whatever the reason: the
+ * server refused the cross-origin request, the host did not resolve, an
+ * extension or proxy intercepted it, the network is down, or a Content
+ * Security Policy blocked it. The browser prints the real reason to its own
+ * console and tells the page nothing, so the honest message names the
+ * possibilities and points at the console rather than asserting one of them.
+ * An HTTP status, by contrast, is known, and is reported as itself.
+ */
+export function describeFetchFailure(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  if (error instanceof TypeError || /^(TypeError|Failed to fetch|NetworkError)/.test(message)) {
+    return (
+      `the request did not complete (${message}). The browser's console says why. ` +
+      'Likely causes: the server does not send Access-Control-Allow-Origin, the ' +
+      'address is unreachable, or an extension, proxy or content blocker stopped it.'
+    )
+  }
+  return message
+}
+
 export interface FileLoadResult {
   content: string
   filename?: string
@@ -87,30 +110,23 @@ export class FileHandler {
     } catch (error) {
       return {
         content: '',
-        error: `Error loading URL: ${error}`
+        error: `Error loading ${url}: ${describeFetchFailure(error)}`
       }
     }
   }
 
   /**
-   * Create CORS-compatible request
+   * Fetch a URL, reporting whatever actually went wrong.
+   *
+   * This used to replace every failure with "CORS error ... the server
+   * doesn't allow cross-origin requests", which is one cause among several
+   * that look identical from here, and was wrong far more often than it was
+   * right: a 404, a rate-limited 429, a blocking extension or an offline
+   * network all arrived under that heading, so the message sent people to
+   * check CORS headers that were fine all along.
    */
   static async loadWithCORS(url: string): Promise<URLLoadResult> {
-    try {
-      // First try direct fetch
-      const result = await this.loadFromURL(url)
-      if (!result.error) {
-        return result
-      }
-
-      // If CORS fails, try with proxy or show appropriate error
-      throw new Error(`CORS error loading ${url}. The server doesn't allow cross-origin requests.`)
-    } catch (error) {
-      return {
-        content: '',
-        error: String(error)
-      }
-    }
+    return this.loadFromURL(url)
   }
 
   /**
