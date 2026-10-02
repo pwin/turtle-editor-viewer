@@ -17,6 +17,8 @@ interface HolosStore extends FederatableStore {
   load(text: string, format: string, base?: string): number;
   /** A boolean for ASK, N-Triples strings for CONSTRUCT/DESCRIBE, term rows for SELECT. */
   query(query: string, base?: string): unknown;
+  /** The plan as JSON, with the statistics from running it. */
+  explain(query: string, base?: string): string;
   readonly size: number;
   free?: () => void;
 }
@@ -178,5 +180,22 @@ export function useSparqlEngine() {
     }
   }, [storeFor]);
 
-  return { executeQuery, results, error, isExecuting };
+  /**
+   * The query plan, with the row counts and timings from running it.
+   *
+   * It runs the query. The engine gathers the statistics as rows pass through
+   * the operators, so a plan serialised before the results are drained reports
+   * zeroes throughout -- which is why this costs a full execution and reports
+   * what that execution did rather than what the planner intended.
+   *
+   * `SERVICE` is not resolved here: `explain` is the engine's own entry point
+   * and has no way to hand pending requests back to the host, so a federated
+   * query explains its local part and shows the service operator unevaluated.
+   */
+  const explainQuery = useCallback(async (query: string, quads: RDFQuad[]): Promise<string> => {
+    const store = await storeFor(quads);
+    return store.explain(query, undefined);
+  }, [storeFor]);
+
+  return { executeQuery, explainQuery, results, error, isExecuting };
 }

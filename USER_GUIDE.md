@@ -124,6 +124,32 @@ Where it goes depends on the **Graph results to tab** box among the SPARQL butto
 
 Either way **Export Results** still saves it.
 
+### Why did my query return nothing? (Explain)
+
+An empty table is the hardest result to read: it looks the same whether the data has no answer, a predicate is misspelled, or a `FILTER` threw everything away. **Explain**, next to Execute Query, answers it.
+
+It shows the **query plan**: the steps the engine took, with the number of rows each one produced and how long it took. The diagram pane draws it as a tree with rows flowing upward from the bottom, and the results pane lists the same thing as a table.
+
+What to look for is the step where the rows ran out. Reading from the bottom:
+
+```
+QuadPattern(?shop rdf:type bs:Bookshop)      33 rows    2 ms
+QuadPattern(?shop rdfs:label ?shop_name)    507 rows    4 ms
+  LeftJoin(keys = ?shop)                     33 rows
+QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
+  LeftJoin(keys = ?shop)                      0 rows   <- nothing came out of here
+```
+
+33 bookshops were found, then a pattern matched nothing, and from there the query had no answer. The culprit is `bs:inSettlement`, a predicate that isn't in the data. The app marks that step in red, in both the diagram and the table, and says so in a line above the table, so you don't have to spot it yourself.
+
+The same view shows the opposite problem: a step whose row count is far larger than its neighbours' is where a query got slow, usually a join with nothing to constrain it.
+
+Three things to know:
+
+- **Explain runs the query.** The counts are measured, not guessed, so they come from a real execution and it costs as much as pressing Execute. On a heavy query, expect to wait as long.
+- **It takes over the diagram pane** while it's showing. **Clear** brings your data diagram straight back; it was never thrown away.
+- **Export plan** saves the whole thing as JSON, which is what to attach when asking someone why a query is slow.
+
 ### Things that catch people out
 - **`HAVING` can't see your `AS` names.** In `SELECT ?shop (COUNT(?x) AS ?n) … HAVING (?n > 1)`, `?n` isn't bound yet when `HAVING` runs, so nothing comes back. Repeat the aggregate instead: `HAVING (COUNT(?x) > 1)`. That's how SPARQL is specified, not a quirk of this engine.
 - **A `CONSTRUCT` template holds triples only.** Sub-selects, `OPTIONAL`, `FILTER` and other `{ }` blocks belong in the `WHERE` part. Put one in the template and the parser will complain that it expected `}` and found `{`.

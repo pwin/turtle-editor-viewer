@@ -21,7 +21,11 @@ function GraphVisualization() {
   const containerRef = useRef<HTMLDivElement>(null)
   const panZoomInstanceRef = useRef<any>(null)
   const { state } = useAppContext()
-  const { graph } = state
+  const { graph, queryPlan } = state
+  // A query plan takes the pane while it is showing. Kept separate from the data's
+  // own DOT rather than overwriting it, so clearing the plan brings the data
+  // diagram straight back with nothing to regenerate.
+  const dotText = queryPlan.dotText || graph.dotText
 
   // Keep a ref to state to access latest values in global callbacks
   const stateRef = useRef(state)
@@ -48,7 +52,7 @@ function GraphVisualization() {
         panZoomInstanceRef.current = null
       }
 
-      if (!graph.dotText || !containerRef.current) {
+      if (!dotText || !containerRef.current) {
         if (containerRef.current) {
           containerRef.current.innerHTML = `
             <div class="graph-placeholder">
@@ -73,7 +77,7 @@ function GraphVisualization() {
             // But generally Viz.js returns SVG best.
             const renderFormat = graph.options.format === 'png' ? 'svg' : graph.options.format;
             
-            result = vizFunction(graph.dotText, {
+            result = vizFunction(dotText, {
               engine: graph.options.engine,
               format: renderFormat,
             })
@@ -89,7 +93,7 @@ function GraphVisualization() {
                 <p><strong>Viz.js not loaded</strong></p>
                 <p>Ensure the viz.js script is included in index.html</p>
                 <p>DOT Content:</p>
-                <pre style="text-align: left; max-height: 300px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(graph.dotText)}</pre>
+                <pre style="text-align: left; max-height: 300px; overflow: auto; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(dotText)}</pre>
               </div>
             `
           }
@@ -174,7 +178,7 @@ function GraphVisualization() {
             // PNG output - First get SVG, then convert
             try {
               // Get SVG first
-              const svgResult = vizFunction(graph.dotText, {
+              const svgResult = vizFunction(dotText, {
                 engine: graph.options.engine,
                 format: 'svg',
               })
@@ -241,7 +245,7 @@ function GraphVisualization() {
               <pre>${escapeHtml(String(error))}</pre>
               <details>
                 <summary>DOT Content (click to expand)</summary>
-                <pre style="text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(graph.dotText)}</pre>
+                <pre style="text-align: left; background: #f8f9fa; padding: 10px; border-radius: 4px;">${escapeHtml(dotText)}</pre>
               </details>
             </div>
           `
@@ -264,7 +268,7 @@ function GraphVisualization() {
         panZoomInstanceRef.current = null
       }
     }
-  }, [graph.dotText, graph.options])
+  }, [dotText, graph.options])
 
   // Mouse handlers for drag scrolling
   const handleMouseDown = (e: React.MouseEvent) => {
