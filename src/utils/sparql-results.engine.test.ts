@@ -87,12 +87,9 @@ describe('the engine and the encoder agree on', () => {
     expect(rows[0].s).toEqual({ type: 'literal', value: 'text' })
   })
 
-  // The one that was broken, and the only case here that the published engine does not yet
-  // satisfy: holos-wasm 0.19.0 reports a triple term as `termType: 'Quad'` with the whole
-  // `<<( ... )>>` text in `value` and no parts, so this asserts a contract that arrives with
-  // 0.20.0. Unskip it with the dependency bump -- it passes against a 0.20.0 build today, and
-  // against 0.19.0 it fails on the fallback shape rather than the TypeError it used to throw.
-  it.skip('a triple term, decomposed into terms the encoder can read', () => {
+  // The one that was broken: holos-wasm 0.19.0 reported a triple term as `termType: 'Quad'`
+  // with the whole `<<( ... )>>` text in `value` and no parts. 0.20.0 decomposes it.
+  it('a triple term, decomposed into terms the encoder can read', () => {
     const { rows } = rowsFor(
       data('ex:who ex:said <<( ex:a ex:p "x" )>> .'),
       `${Q} SELECT ?statement WHERE { ?who ex:said ?statement }`,
