@@ -70,10 +70,12 @@ type HolosRow = Record<string, HolosTerm>;
  * is outstanding -- see `runFederatedQuery` for why a pass with anything pending is discarded
  * rather than shown.
  *
- * What remains missing is the *bound* join. The engine sends a `SERVICE` clause's bare pattern,
- * with no bindings from the join above it, so a clause that is only selective once those
- * bindings exist -- `q105` in the course -- asks the endpoint a question too broad to answer
- * usefully. That is pushdown in the engine, not something a host can add.
+ * The keys go with the question, from holos-wasm 0.20.0. A `SERVICE` clause used to be sent as
+ * written, so one that is only selective once the join above it has rows -- `q105` in the course
+ * -- asked DBpedia for every population it holds, got the ten thousand it chose to return, and
+ * found none of the three towns among them. The engine now evaluates the local part first and
+ * sends the keys as a `VALUES` block, which is a bound join; nothing is required of this file,
+ * because the query the engine reports as pending already has them in it.
  */
 export function useSparqlEngine() {
   const [results, setResults] = useState<SparqlResult | null>(null);
