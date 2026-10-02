@@ -196,6 +196,24 @@
         </ul>
         <p>Either way <strong>Export Results</strong> still saves it.</p>
 
+        <h3 id="explain">Why did my query return nothing? (Explain)</h3>
+        <p>An empty table is the hardest result to read: it looks the same whether the data has no answer, a predicate is misspelled, or a <code>FILTER</code> threw everything away. <strong>Explain</strong>, next to Execute Query, answers it.</p>
+        <p>It shows the <strong>query plan</strong>: the steps the engine took, with the number of rows each one produced and how long it took. The diagram pane draws it as a tree with rows flowing upward from the bottom, and the results pane lists the same thing as a table.</p>
+        <p>What to look for is the step where the rows ran out. Reading from the bottom:</p>
+<pre>QuadPattern(?shop rdf:type bs:Bookshop)      33 rows    2 ms
+QuadPattern(?shop rdfs:label ?shop_name)    507 rows    4 ms
+  LeftJoin(keys = ?shop)                     33 rows
+QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
+  LeftJoin(keys = ?shop)                      0 rows   &lt;- nothing came out of here</pre>
+        <p>33 bookshops were found, then a pattern matched nothing, and from there the query had no answer. The culprit is <code>bs:inSettlement</code>, a predicate that isn't in the data. The app marks that step in red, in both the diagram and the table, and says so in a line above the table, so you don't have to spot it yourself.</p>
+        <p>The same view shows the opposite problem: a step whose row count is far larger than its neighbours' is where a query got slow, usually a join with nothing to constrain it.</p>
+        <p>Three things to know:</p>
+        <ul>
+            <li><strong>Explain runs the query.</strong> The counts are measured, not guessed, so they come from a real execution and it costs as much as pressing Execute. On a heavy query, expect to wait as long.</li>
+            <li><strong>It takes over the diagram pane</strong> while it's showing. <strong>Clear</strong> brings your data diagram straight back; it was never thrown away.</li>
+            <li><strong>Export plan</strong> saves the whole thing as JSON, which is what to attach when asking someone why a query is slow.</li>
+        </ul>
+
         <h3>Things that catch people out</h3>
         <ul>
             <li><strong><code>HAVING</code> can't see your <code>AS</code> names.</strong> In <code>SELECT ?shop (COUNT(?x) AS ?n) … HAVING (?n &gt; 1)</code>, <code>?n</code> isn't bound yet when <code>HAVING</code> runs, so nothing comes back. Repeat the aggregate instead: <code>HAVING (COUNT(?x) &gt; 1)</code>. That's how SPARQL is specified, not a quirk of this engine.</li>
@@ -315,7 +333,7 @@
         </ul>
 
         <div class="footer">
-            <p>Turtle Editor Viewer v2.0.0</p>
+            <p>Turtle Editor Viewer v2.3.0</p>
         </div>
     </div>
 </body>

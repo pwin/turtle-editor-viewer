@@ -131,3 +131,6 @@ node_modules
 
 # Monaco editor, copied out of node_modules by scripts/setup-monaco.mjs
 public/monaco/
+
+# Release archives of dist/, built for deployment rather than committed
+turtle-editor-viewer-*.zip

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react'
-import type { AppState, EditorLanguage, EditorTheme, ShaclInference, ShaclReport } from '@/types'
+import type { AppState, EditorLanguage, EditorTheme, QueryPlan, ShaclInference, ShaclReport } from '@/types'
 import {
   SOURCE_TAB_ID,
   activateTab,
@@ -83,6 +83,12 @@ const initialState: AppState = {
     isValidating: false,
     error: undefined,
   },
+  queryPlan: {
+    plan: undefined,
+    dotText: '',
+    isExplaining: false,
+    error: undefined,
+  },
 }
 
 // Action types
@@ -116,6 +122,9 @@ type AppAction =
   | { type: 'SET_SHACL_REPORT'; payload: ShaclReport | undefined }
   | { type: 'SET_SHACL_VALIDATING'; payload: boolean }
   | { type: 'SET_SHACL_ERROR'; payload: string | undefined }
+  | { type: 'SET_QUERY_PLAN'; payload: { plan: QueryPlan; dotText: string } | undefined }
+  | { type: 'SET_QUERY_PLAN_EXPLAINING'; payload: boolean }
+  | { type: 'SET_QUERY_PLAN_ERROR'; payload: string | undefined }
   | { type: 'RESET_APP' }
 
 // Reducer
@@ -192,6 +201,22 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, shacl: { ...state.shacl, isValidating: action.payload } }
     case 'SET_SHACL_ERROR':
       return { ...state, shacl: { ...state.shacl, error: action.payload } }
+    case 'SET_QUERY_PLAN':
+      // The plan's DOT lives beside the data's rather than replacing it, so
+      // clearing the plan brings the data diagram back without regenerating it.
+      return {
+        ...state,
+        queryPlan: {
+          ...state.queryPlan,
+          plan: action.payload?.plan,
+          dotText: action.payload?.dotText ?? '',
+          error: action.payload ? undefined : state.queryPlan.error,
+        },
+      }
+    case 'SET_QUERY_PLAN_EXPLAINING':
+      return { ...state, queryPlan: { ...state.queryPlan, isExplaining: action.payload } }
+    case 'SET_QUERY_PLAN_ERROR':
+      return { ...state, queryPlan: { ...state.queryPlan, error: action.payload } }
     case 'RESET_APP':
       return initialState
     default:

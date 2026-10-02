@@ -386,3 +386,48 @@
 .shacl-info .shacl-severity {
   color: #0d6efd;
 }
+
+/* Query plan (Explain) */
+.explain-btn {
+  background-color: #0d6efd !important;
+}
+
+.explain-btn:hover:not(:disabled) {
+  background-color: #0b5ed7 !important;
+}
+
+.plan-note {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-left: 3px solid #dc3545;
+  background-color: #fff5f5;
+  font-size: 12px;
+  color: #495057;
+}
+
+.plan-table td,
+.plan-table th {
+  vertical-align: top;
+}
+
+.plan-table .plan-number {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The operator's arguments: present, but not competing with its name */
+.plan-detail {
+  color: #6c757d;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.plan-table tr.plan-collapse {
+  background-color: #fff5f5;
+}
+
+.plan-table tr.plan-collapse strong {
+  color: #dc3545;
+}

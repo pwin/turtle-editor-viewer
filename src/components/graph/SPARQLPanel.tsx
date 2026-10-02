@@ -3,6 +3,14 @@ import { saveAs } from 'file-saver';
 import { useAppContext } from '@/store/AppProvider';
 import { RDFParser } from '@/services/rdf-parser';
 import { validateWithShapes } from '@/services/shacl-validator';
+import {
+  flattenPlan,
+  formatRows,
+  formatSeconds,
+  generatePlanDot,
+  isCollapsePoint,
+  parseQueryPlan,
+} from '@/services/query-plan';
 import { SHACL_INFERENCE_MODES, type ShaclInference } from '@/types';
 
 /** What the Inference dropdown offers, and what each choice means. */
@@ -30,7 +38,7 @@ import './SPARQLPanel.css';
 
 function SPARQLPanel() {
   const { state, dispatch } = useAppContext()
-  const { sparql, shacl, editor } = state
+  const { sparql, shacl, editor, queryPlan } = state
   const [showResults, setShowResults] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
   // Set when the last graph result was opened as an editor tab, so the
@@ -90,7 +98,42 @@ function SPARQLPanel() {
     }
   }, [])
 
-  const { executeQuery } = useSparqlEngine();
+  const { executeQuery, explainQuery } = useSparqlEngine();
+
+  /**
+   * Explain the query: run it, and show the plan the engine measured instead
+   * of the rows. The plan goes to the diagram pane as a tree of operators and
+   * to the results pane as a table.
+   *
+   * It is as expensive as executing, because the statistics are gathered as
+   * rows flow through the operators -- hence the warning on the button.
+   */
+  const handleExplainQuery = async () => {
+    if (!sparql.query.trim()) return
+    try {
+      dispatch({ type: 'SET_QUERY_PLAN_EXPLAINING', payload: true })
+      dispatch({ type: 'SET_QUERY_PLAN_ERROR', payload: undefined })
+      dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
+      dispatch({ type: 'SET_SHACL_REPORT', payload: undefined })
+
+      const parser = new RDFParser()
+      if (!editor.content.trim()) throw new Error('No RDF content in editor to query')
+      const parsed = await parser.parseRDF(editor.content, editor.language)
+      if (parsed.error) throw new Error(`RDF parsing error: ${parsed.error}`)
+
+      const plan = parseQueryPlan(await explainQuery(sparql.query, parsed.quads))
+      dispatch({
+        type: 'SET_QUERY_PLAN',
+        payload: { plan, dotText: generatePlanDot(plan, state.graph.options.layoutDirection) },
+      })
+      setShowResults(true)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      dispatch({ type: 'SET_QUERY_PLAN_ERROR', payload: message })
+    } finally {
+      dispatch({ type: 'SET_QUERY_PLAN_EXPLAINING', payload: false })
+    }
+  }
 
   /**
    * Open a CONSTRUCT / DESCRIBE result as a new editor tab, pre-selecting all
@@ -253,6 +296,9 @@ function SPARQLPanel() {
     dispatch({ type: 'SET_SPARQL_ERROR', payload: undefined })
     dispatch({ type: 'SET_SHACL_REPORT', payload: undefined })
     dispatch({ type: 'SET_SHACL_ERROR', payload: undefined })
+    // Dropping the plan restores the data diagram, which was never overwritten.
+    dispatch({ type: 'SET_QUERY_PLAN', payload: undefined })
+    dispatch({ type: 'SET_QUERY_PLAN_ERROR', payload: undefined })
   }
 
   const handleExportQuery = () => {
@@ -406,7 +452,73 @@ function SPARQLPanel() {
     )
   }
 
+  const renderQueryPlan = () => {
+    const plan = queryPlan.plan
+    if (!plan || !showResults) return null
+    const rows = flattenPlan(plan.root)
+    const collapse = rows.find(({ node }) => isCollapsePoint(node))
+
+    return (
+      <div className="sparql-results-container">
+        <div className="sparql-results">
+          <div className="results-header">
+            <h4>
+              Query plan · {formatRows(plan.rows)} · planned in {formatSeconds(plan.planningSeconds)},
+              {' '}ran in {formatSeconds(plan.runSeconds)} · {plan.nodeCount} operators
+            </h4>
+            <div className="results-actions">
+              <button
+                onClick={() => {
+                  const blob = new Blob([JSON.stringify(plan, null, 2)], { type: 'application/json' })
+                  saveAs(blob, 'query-plan.json')
+                }}
+                title="Save the plan, with its statistics, as JSON"
+              >
+                Export plan
+              </button>
+              <button onClick={handleClearResults} className="clear-btn">Clear</button>
+            </div>
+          </div>
+          <div className="results-table-container">
+            {collapse && (
+              <p className="plan-note">
+                Rows ran out at <strong>{collapse.node.kind}</strong>
+                {collapse.node.detail ? <> ({collapse.node.detail})</> : null}: its inputs produced rows and it
+                produced none. That is where the query stopped having an answer.
+              </p>
+            )}
+            <table className="results-table plan-table">
+              <thead>
+                <tr>
+                  <th>Operator</th>
+                  <th className="plan-number">Rows</th>
+                  <th className="plan-number">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ node, depth }) => (
+                  <tr key={node.id} className={isCollapsePoint(node) ? 'plan-collapse' : undefined}>
+                    <td>
+                      {/* Indentation is the tree: depth as padding, not as glyphs. */}
+                      <span style={{ paddingLeft: `${depth * 14}px` }}>
+                        <strong>{node.kind}</strong>
+                        {node.detail ? <span className="plan-detail"> {node.detail}</span> : null}
+                      </span>
+                    </td>
+                    <td className="plan-number">{node.rows.toLocaleString('en-GB')}</td>
+                    <td className="plan-number">{formatSeconds(node.seconds)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const renderResults = () => {
+    if (queryPlan.plan) return renderQueryPlan()
     if (shacl.report) return renderShaclReport()
     if (!sparql.results || !showResults) return null
 
@@ -502,6 +614,14 @@ function SPARQLPanel() {
           >
             {sparql.isExecuting ? 'Executing...' : 'Execute Query'}
           </button>
+          <button
+            onClick={handleExplainQuery}
+            disabled={queryPlan.isExplaining || sparql.isExecuting || !sparql.query.trim()}
+            className="explain-btn"
+            title="Show the query plan with the row count and time at each step, drawn in the diagram pane. This runs the query: the statistics are measured, not predicted, so it costs as much as executing it."
+          >
+            {queryPlan.isExplaining ? 'Explaining…' : 'Explain'}
+          </button>
           <button onClick={handleClearResults}>
             Clear Results
           </button>
@@ -572,6 +692,11 @@ function SPARQLPanel() {
         {shacl.error && (
           <div className="sparql-error">
             <strong>Validation error:</strong> {shacl.error}
+          </div>
+        )}
+        {queryPlan.error && (
+          <div className="sparql-error">
+            <strong>Explain error:</strong> {queryPlan.error}
           </div>
         )}
         
