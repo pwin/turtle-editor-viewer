@@ -179,12 +179,47 @@ export interface ShaclState {
   error?: string
 }
 
+// Query plan types
+/** One operator in the plan, with the statistics from the run that measured it. */
+export interface PlanNode {
+  /** Stable within one plan; the node's position in the tree. */
+  id: string
+  /** The operator as the engine names it, arguments included. */
+  name: string
+  /** The name up to its first bracket: QuadPattern, LeftJoin, Filter, Project. */
+  kind: string
+  /** Whatever was inside the brackets. */
+  detail: string
+  rows: number
+  seconds: number
+  children: PlanNode[]
+}
+
+export interface QueryPlan {
+  planningSeconds: number
+  /** What the whole plan took: the root operator's own duration. */
+  runSeconds: number
+  /** Rows the query returned. */
+  rows: number
+  nodeCount: number
+  root: PlanNode
+}
+
+export interface QueryPlanState {
+  plan?: QueryPlan
+  /** The plan drawn as DOT; shown in the diagram pane in place of the data. */
+  dotText: string
+  isExplaining: boolean
+  error?: string
+}
+
 export interface AppState {
   editor: EditorState
   graph: GraphState
   rdf: RDFStore
   sparql: SPARQLQuery
   shacl: ShaclState
+  queryPlan: QueryPlanState
 }
 
 // Component Props

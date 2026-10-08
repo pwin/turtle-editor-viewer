@@ -1,5 +1,6 @@
 import * as glue from 'holos-wasm/holos_wasm_bg.js'
 import wasmUrl from 'holos-wasm/holos_wasm_bg.wasm?url'
+import { fetchWasm } from './wasm-asset'
 
 /**
  * Loads the SPARQL engine: `holos-wasm`, the WebAssembly build of the HOLOS store and
@@ -36,11 +37,7 @@ export interface HolosEngine {
 /** Where the bytes come from; tests run outside a browser and read the file. */
 export type WasmSource = () => Promise<BufferSource>
 
-let source: WasmSource = async () => {
-  const response = await fetch(wasmUrl)
-  if (!response.ok) throw new Error(`Could not load the SPARQL engine (HTTP ${response.status})`)
-  return response.arrayBuffer()
-}
+let source: WasmSource = () => fetchWasm(wasmUrl, 'The SPARQL engine')
 
 let engine: Promise<HolosEngine> | undefined
 

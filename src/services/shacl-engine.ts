@@ -1,5 +1,6 @@
 import * as glue from 'shacl-wasm/shacl_wasm_bg.js'
 import wasmUrl from 'shacl-wasm/shacl_wasm_bg.wasm?url'
+import { fetchWasm } from './wasm-asset'
 
 /**
  * Loads the SHACL engine: `shacl-wasm`, the WebAssembly build of the Rust
@@ -26,11 +27,7 @@ export interface ShaclEngine {
 /** Where the bytes come from; tests run outside a browser and read the file. */
 export type WasmSource = () => Promise<BufferSource>
 
-let source: WasmSource = async () => {
-  const response = await fetch(wasmUrl)
-  if (!response.ok) throw new Error(`Could not load the SHACL engine (HTTP ${response.status})`)
-  return response.arrayBuffer()
-}
+let source: WasmSource = () => fetchWasm(wasmUrl, 'The SHACL engine')
 
 let engine: Promise<ShaclEngine> | undefined
 

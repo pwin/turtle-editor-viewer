@@ -30,6 +30,7 @@ function baseState(): AppState {
     graph: {} as AppState['graph'],
     sparql: {} as AppState['sparql'],
     shacl: { isValidating: false, inference: 'none' },
+    queryPlan: { dotText: '', isExplaining: false },
   }
 }
 
