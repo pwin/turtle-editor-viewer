@@ -272,4 +272,4 @@ Data can't run code, either. Everything that comes from a file, IRIs, labels, li
 - **Nothing here is a substitute for your own review.** The source is public; the checks described are the ones that have been done, and the [SECURITY.md](SECURITY.md) file in the repository says how to repeat them.
 
 ---
-*Turtle Editor Viewer v2.3.0*
+*Turtle Editor Viewer v2.3.1*
