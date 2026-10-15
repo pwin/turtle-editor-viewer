@@ -1,0 +1,47 @@
+# Every check this project has, on every push to master and every pull request:
+# the type check, the lint, the unit tests, and the production build. The built
+# site is kept as the run's artifact, so a deployable copy exists for any commit
+# without building it by hand.
+#
+# Node 22, not 20: package.json's engines field asks for >= 22.19 and it is not
+# a leftover -- Vitest 4 will not run below 22 at all, so the whole suite fails
+# on 20 before any test does.
+#
+# The suites driven by the SPARQL_Course material (services/sparql-1-2.test.ts
+# and the course block of services/shacl-validator.test.ts) skip themselves when
+# that sibling checkout is absent, which it is here. They are the end-to-end
+# coverage, so run them locally before a release; what runs here is everything
+# that does not need a second repository.
+#
+# Nothing here publishes or deploys. Releasing stays a deliberate step.
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm test
+
+      # Also writes public/monaco/ by way of the prebuild hook, so this covers
+      # the Monaco copy the deployed app serves from its own origin.
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
