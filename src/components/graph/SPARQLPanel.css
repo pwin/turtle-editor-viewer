@@ -431,3 +431,8 @@
 .plan-table tr.plan-collapse strong {
   color: #dc3545;
 }
+
+/* A blank-node focus node: described, not named by an internal label */
+.shacl-anon {
+  color: #6c757d;
+}

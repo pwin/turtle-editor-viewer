@@ -436,7 +436,12 @@ function SPARQLPanel() {
                   {report.results.map((r, index) => (
                     <tr key={index} className={`shacl-${r.severity.toLowerCase()}`}>
                       <td className="shacl-severity">{r.severity}</td>
-                      <td title={r.focusNode}>{short(r.focusNode)}</td>
+                      {/* A blank node's label is the engine's, not the document's,
+                          so the cell says what the thing is and keeps the label on
+                          hover for matching against the report graph. */}
+                      <td title={r.focusNode}>
+                        {r.focusIsBlank ? <em className="shacl-anon">a blank node</em> : short(r.focusNode)}
+                      </td>
                       <td title={r.path ?? ''}>{shortPath(r.path)}</td>
                       <td>{r.value ?? ''}</td>
                       <td>{r.message}</td>
