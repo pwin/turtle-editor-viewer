@@ -4,6 +4,7 @@ import type { RDFQuad } from '@/types';
 import { quadsToTurtle, resultVars, termToResult, type ResultRow } from '@/utils/sparql-results';
 import { loadHolosEngine } from '@/services/holos-engine';
 import { runFederatedQuery, type FederatableStore } from '@/services/federation';
+import { describeLoadFailure } from '@/services/relative-iri';
 
 export interface SparqlResult {
   head?: { vars: string[] };
@@ -116,7 +117,14 @@ export function useSparqlEngine() {
         else text = result;
       });
       if (failure) throw failure;
-      store.load(text, 'nquads', undefined);
+      try {
+        store.load(text, 'nquads', undefined);
+      } catch (error) {
+        // A graph with a relative IRI is refused whole, with a parse error
+        // naming a line of N-Quads the user never saw. Say what it was.
+        store.free?.();
+        throw new Error(describeLoadFailure(error, quads));
+      }
     }
     cached.current = { key: quads, store };
     return store;

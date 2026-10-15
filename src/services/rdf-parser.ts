@@ -10,6 +10,18 @@ export interface RDFParseResult {
   labels?: Record<string, string>
 }
 
+/**
+ * The base every relative IRI is resolved against, whatever the syntax.
+ *
+ * A document that uses relative IRIs has to get an absolute one from
+ * somewhere, and an editor pane has no address to offer. Resolving them all
+ * against one placeholder keeps the same document meaning the same thing in
+ * Turtle and in JSON-LD, and keeps relative IRIs out of the quads: the SPARQL
+ * and SHACL engines refuse an entire graph that contains one, so a single
+ * relative term would otherwise cost every query rather than one statement.
+ */
+export const BASE_IRI = 'http://example.org/'
+
 export class RDFParser {
   private prefixes: Record<string, string> = {}
   private quads: RDFQuad[] = []
@@ -69,7 +81,7 @@ export class RDFParser {
         ...DataFactory,
         blankNode: (name?: string) => DataFactory.blankNode(name || `anon-${anonymous++}`),
       }
-      const parser = new Parser({ baseIRI: 'http://example.org/', blankNodePrefix: '', factory })
+      const parser = new Parser({ baseIRI: BASE_IRI, blankNodePrefix: '', factory })
       const store = new Store()
       
       return new Promise((resolve, reject) => {
@@ -163,6 +175,12 @@ export class RDFParser {
       // the parser fetch it, a request the document chose rather than the
       // user. Contexts have to be written into the document.
       const parser = new JsonLdParser({
+        // Resolved against the same base as Turtle. Left to itself this parser
+        // resolves against a placeholder scheme and then strips it again, so a
+        // relative @id survives into the quads as a term with no scheme -- which
+        // n3 writes out happily and the engines then refuse, failing a query over
+        // the whole document rather than the one statement.
+        baseIRI: BASE_IRI,
         documentLoader: {
           load: (url: string) =>
             Promise.reject(
