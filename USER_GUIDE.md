@@ -266,7 +266,7 @@ Data can't run code, either. Everything that comes from a file, IRIs, labels, li
 ### If you're deploying this inside an organisation
 - The policy allows connections to any `http:` or `https:` address, because that's what `SERVICE` needs. To restrict it to approved endpoints, send a `Content-Security-Policy` header from your web server with a tighter `connect-src` (say, `connect-src 'self' https://sparql.example.internal`); the browser applies both, and the stricter one wins. Drop `http:` if all your endpoints are HTTPS.
 - Everything the page needs is in the deployed folder: no outbound access is required to run it, so it works on a network with no route to the internet.
-- The dependency tree is audited (`npm audit`) and pruned to what the app actually imports. The one remaining advisory is DOMPurify inside the Monaco editor's own bundle; the affected APIs aren't ones Monaco calls, and the only markdown it sanitises is the app's own static text.
+- The dependency tree is audited (`npm audit`) and pruned to what the app actually imports. What remains are two low advisories against the DOMPurify copy inside the Monaco editor's own bundle: the affected APIs aren't ones Monaco calls, and the only markdown it sanitises is the app's own static text. Monaco's pin on it is out of our hands, so the editor is kept current as a matter of course.
 
 ### Things worth knowing
 - **A link can carry a URL.** `?dot=https://…` fetches whatever address the link names. That's the point of it, and it's also why you should treat such a link like any other link: it will load that file into your editor.
@@ -274,4 +274,4 @@ Data can't run code, either. Everything that comes from a file, IRIs, labels, li
 - **Nothing here is a substitute for your own review.** The source is public; the checks described are the ones that have been done, and the [SECURITY.md](SECURITY.md) file in the repository says how to repeat them.
 
 ---
-*Turtle Editor Viewer v2.3.2*
+*Turtle Editor Viewer v2.3.3*

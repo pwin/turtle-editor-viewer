@@ -67,7 +67,9 @@ All rendering of data-derived text is by `textContent` or escaped interpolation:
 
 ## Dependencies
 
-`package.json` lists only what the source imports (verified by scanning for import specifiers). `npm audit` reports two advisories, both DOMPurify as pinned inside `monaco-editor`'s own bundle; the affected APIs (`IN_PLACE`, `CUSTOM_ELEMENT_HANDLING`, `setConfig`/`clearConfig`) are not how Monaco calls it, and the only markdown Monaco sanitises here is the app's own static completion text. Only a Monaco release can move it.
+`package.json` lists only what the source imports (verified by scanning for import specifiers). `npm audit` reports two low advisories, both DOMPurify as pinned inside `monaco-editor`'s own bundle. The affected APIs (`IN_PLACE`, `CUSTOM_ELEMENT_HANDLING`, `setConfig`/`clearConfig`) are not how Monaco calls it, and the only markdown Monaco sanitises here is the app's own static completion text.
+
+Only a Monaco release can move that pin, and one did: `monaco-editor` 0.57.0 carries DOMPurify 3.4.15 in place of 0.56.0's 3.4.8, which takes the bundled copy out of range for four of the five advisories against it. The fifth needs 3.4.16, which no Monaco release carries yet. Everything else `npm audit` has reported has been resolved rather than accepted; where a transitive advisory is build-time only (eslint's `brace-expansion`, Vite's `source-map-js`) or absent from the browser bundle (the Node HTTP client behind the JSON-LD serialiser's `undici`), that is checked by grepping `dist/` rather than assumed.
 
 Inference is bounded. SHACL-AF rules run inside the WebAssembly engine on a copy of the parsed data; the text in the tab is not changed. *rules, iterated* stops after ten rounds, and a rule set that keeps producing new terms stops with an error rather than running until memory is exhausted. A hostile shapes graph can still make a single validation slow, as a hostile SPARQL query can; neither can reach outside the page.
 

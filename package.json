@@ -1,6 +1,6 @@
 {
   "name": "turtle-editor-viewer",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "type": "module",
   "description": "A modern React + TypeScript RDF/Turtle editor and visualizer",
   "scripts": {
@@ -26,7 +26,7 @@
     "file-saver": "^2.0.5",
     "holos-wasm": "^0.21.1",
     "hylar-core": "^1.2.2",
-    "monaco-editor": "^0.56.0",
+    "monaco-editor": "^0.57.0",
     "n3": "^2.2.5",
     "process": "^0.11.10",
     "rdfxml-streaming-parser": "^3.3.0",

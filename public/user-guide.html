@@ -323,7 +323,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         <ul>
             <li>The policy allows connections to any <code>http:</code> or <code>https:</code> address, because that's what <code>SERVICE</code> needs. To restrict it to approved endpoints, send a <code>Content-Security-Policy</code> header from your web server with a tighter <code>connect-src</code> (say, <code>connect-src 'self' https://sparql.example.internal</code>); the browser applies both, and the stricter one wins. Drop <code>http:</code> if all your endpoints are HTTPS.</li>
             <li>Everything the page needs is in the deployed folder: no outbound access is required to run it, so it works on a network with no route to the internet.</li>
-            <li>The dependency tree is audited (<code>npm audit</code>) and pruned to what the app actually imports. The one remaining advisory is DOMPurify inside the Monaco editor's own bundle; the affected APIs aren't ones Monaco calls, and the only markdown it sanitises is the app's own static text.</li>
+            <li>The dependency tree is audited (<code>npm audit</code>) and pruned to what the app actually imports. What remains are two low advisories against the DOMPurify copy inside the Monaco editor's own bundle: the affected APIs aren't ones Monaco calls, and the only markdown it sanitises is the app's own static text. Monaco's pin on it is out of our hands, so the editor is kept current as a matter of course.</li>
         </ul>
 
         <h3>Things worth knowing</h3>
@@ -334,7 +334,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         </ul>
 
         <div class="footer">
-            <p>Turtle Editor Viewer v2.3.2</p>
+            <p>Turtle Editor Viewer v2.3.3</p>
         </div>
     </div>
 </body>
