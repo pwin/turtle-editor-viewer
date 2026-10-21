@@ -135,6 +135,13 @@ export type ShaclSeverity = 'Violation' | 'Warning' | 'Info'
 export interface ShaclResult {
   severity: ShaclSeverity
   focusNode: string
+  /**
+   * Whether the focus node is a blank node, in which case `focusNode` is the
+   * engine's own label for it and names nothing the reader can look up. A
+   * focus node is only ever an IRI or a blank node, so this is readable from
+   * the value; a literal, which could begin `_:` as its text, cannot be one.
+   */
+  focusIsBlank: boolean
   /** The property path as an IRI or a rendered path expression; null for node-level results. */
   path: string | null
   /** The offending value; null where the constraint is about absence (sh:minCount, sh:closed). */

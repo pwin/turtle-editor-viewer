@@ -219,6 +219,51 @@ describe('fillMessageTemplate', () => {
   })
 })
 
+describe('a blank node as the focus node', () => {
+  const SHAPE = `
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://ex/> .
+ex:PersonShape a sh:NodeShape ; sh:targetClass ex:Person ;
+  sh:property [ sh:path ex:name ; sh:minCount 1 ; sh:message "{$this} needs a name." ] .
+`
+  const DATA = `
+@prefix ex: <http://ex/> .
+_:labelled a ex:Person .
+[] a ex:Person .
+ex:named a ex:Person .
+`
+
+  it("is flagged, so the report need not print the engine's label", async () => {
+    const report = await validateWithShapes((await parse(DATA)).quads, (await parse(SHAPE)).quads)
+    const blank = report.results.filter(r => r.focusIsBlank)
+    const named = report.results.filter(r => !r.focusIsBlank)
+    // Both the labelled (_:labelled) and the anonymous ([]) node are blank.
+    expect(blank).toHaveLength(2)
+    expect(named.map(r => r.focusNode)).toEqual(['http://ex/named'])
+  })
+
+  it("keeps the engine's label in the field, which the report graph also uses", async () => {
+    const report = await validateWithShapes((await parse(DATA)).quads, (await parse(SHAPE)).quads)
+    for (const r of report.results.filter(x => x.focusIsBlank)) {
+      expect(r.focusNode).toMatch(/^_:/)
+      expect(report.turtle).toContain(r.focusNode.slice(2))
+    }
+  })
+
+  it('does not name a blank node in the message either', async () => {
+    // The engine substitutes {$this} itself and writes "[a blank node]" rather
+    // than its own identifier, so the row and its message agree. Asserted here
+    // because it is the engine's behaviour, not this module's, and a change to
+    // it would put an internal label back into the prose.
+    const report = await validateWithShapes((await parse(DATA)).quads, (await parse(SHAPE)).quads)
+    for (const r of report.results.filter(x => x.focusIsBlank)) {
+      expect(r.message).not.toContain('_:')
+      expect(r.message).toContain('needs a name')
+    }
+    expect(report.results.find(r => !r.focusIsBlank)!.message).toBe('http://ex/named needs a name.')
+  })
+})
+
 const COURSE = 'C:/repos/SPARQL_Course/data'
 const courseAvailable = existsSync(join(COURSE, 'shapes.ttl'))
 

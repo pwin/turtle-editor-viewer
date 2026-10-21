@@ -97,6 +97,7 @@
         </ol>
         <p>You can also put the URL straight into the page address so a link opens ready-loaded; see <a href="#url-parameters">URL parameters</a> at the end.</p>
         <p>The editor works out the format from the content as you type, so you don't usually need to tell it. If it guesses wrong, the <strong>Language</strong> dropdown sets it by hand.</p>
+        <p>A document that uses <strong>relative IRIs</strong> (<code>&lt;hasChild&gt;</code> rather than <code>&lt;http://example.org/hasChild&gt;</code>, or a relative <code>@id</code> in JSON-LD) has them resolved against <code>http://example.org/</code>, in every syntax. An editor pane has no address of its own to offer, and the query and validation engines reject an entire graph that contains an IRI with no scheme, so resolving them keeps one such term from costing every query over the document.</p>
 
         <h3>Tabs</h3>
         <p>The editor can hold several documents at once, each in its own tab:</p>
@@ -333,7 +334,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         </ul>
 
         <div class="footer">
-            <p>Turtle Editor Viewer v2.3.1</p>
+            <p>Turtle Editor Viewer v2.3.2</p>
         </div>
     </div>
 </body>

@@ -3,6 +3,7 @@ import type { Validator } from 'shacl-wasm'
 import type { RDFQuad, ShaclInference, ShaclReport, ShaclResult, ShaclSeverity } from '@/types'
 import { loadShaclEngine } from './shacl-engine'
 import { renderPathExpression } from './shacl-path'
+import { describeLoadFailure } from './relative-iri'
 
 /**
  * Validates a data graph against a shapes graph with the SHACL engine and
@@ -70,7 +71,13 @@ export async function validateWithShapes(
   inference: ShaclInference = 'none',
 ): Promise<ShaclReport> {
   const shapesGraph = await compileShapes(shapes)
-  const report = shapesGraph.validator.validateTurtle(toNTriples(data), BASE, inference)
+  let report: ReturnType<typeof shapesGraph.validator.validateTurtle>
+  try {
+    report = shapesGraph.validator.validateTurtle(toNTriples(data), BASE, inference)
+  } catch (error) {
+    // Same refusal as the SPARQL store: one relative IRI costs the graph.
+    throw new Error(describeLoadFailure(error, data))
+  }
   try {
     const results = (report.results as EngineResult[]).map(r => toResult(r, shapesGraph))
     results.sort(
@@ -133,6 +140,12 @@ function toResult(r: EngineResult, shapesGraph: CompiledShapes): ShaclResult {
   return {
     severity: SEVERITY[r.severity] ?? 'Info',
     focusNode: r.focusNode,
+    // The engine relabels blank nodes when it parses, so its label for one is
+    // neither the document's nor the one the subject picker shows, and it
+    // changes between runs. Flagged here so the report can say "a blank node"
+    // rather than print an identifier that leads nowhere -- the same choice
+    // fillMessageTemplate already makes for the prose.
+    focusIsBlank: isBlankLabel(r.focusNode),
     path,
     value,
     message: fillMessageTemplate(r.message ?? '', r.focusNode, path, value) || defaultMessage(r.component),
@@ -143,6 +156,16 @@ function toResult(r: EngineResult, shapesGraph: CompiledShapes): ShaclResult {
 
 /** What a message calls a focus node that has no name of its own. */
 export const ANONYMOUS_FOCUS = '[a blank node]'
+
+/**
+ * Whether a reported node is a blank node.
+ *
+ * The engine writes one as `_:<its own label>`. A focus node is an IRI or a
+ * blank node and never a literal, so the prefix settles it there; the same is
+ * not true of a value, which could be a literal whose text begins `_:`, and
+ * which is therefore only treated as anonymous when it is the focus node.
+ */
+const isBlankLabel = (term: string) => term.startsWith('_:')
 
 /**
  * sh:message is a template: SHACL says `{$this}`, `{$path}` and `{$value}`
@@ -169,7 +192,7 @@ export function fillMessageTemplate(
   value: string | null,
 ): string {
   if (!message.includes('{')) return message
-  const anonymous = focusNode.startsWith('_:')
+  const anonymous = isBlankLabel(focusNode)
   const focusText = anonymous ? ANONYMOUS_FOCUS : focusNode
   const valueText = anonymous && value === focusNode ? ANONYMOUS_FOCUS : value
   let out = message.replace(/\{[$?]this\}/g, () => focusText)

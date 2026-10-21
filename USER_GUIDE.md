@@ -27,6 +27,8 @@ You can also put the URL straight into the page address so a link opens ready-lo
 
 The editor works out the format from the content as you type, so you don't usually need to tell it. If it guesses wrong, the **Language** dropdown sets it by hand.
 
+A document that uses **relative IRIs** (`<hasChild>` rather than `<http://example.org/hasChild>`, or a relative `@id` in JSON-LD) has them resolved against `http://example.org/`, in every syntax. An editor pane has no address of its own to offer, and the query and validation engines reject an entire graph that contains an IRI with no scheme, so resolving them keeps one such term from costing every query over the document.
+
 ### Tabs
 The editor can hold several documents at once, each in its own tab:
 
@@ -272,4 +274,4 @@ Data can't run code, either. Everything that comes from a file, IRIs, labels, li
 - **Nothing here is a substitute for your own review.** The source is public; the checks described are the ones that have been done, and the [SECURITY.md](SECURITY.md) file in the repository says how to repeat them.
 
 ---
-*Turtle Editor Viewer v2.3.1*
+*Turtle Editor Viewer v2.3.2*

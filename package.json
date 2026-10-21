@@ -1,6 +1,6 @@
 {
   "name": "turtle-editor-viewer",
-  "version": "2.3.1",
+  "version": "2.3.2",
   "type": "module",
   "description": "A modern React + TypeScript RDF/Turtle editor and visualizer",
   "scripts": {
@@ -24,7 +24,7 @@
     "@rdfjs/serializer-jsonld-ext": "^4.0.2",
     "buffer": "^6.0.3",
     "file-saver": "^2.0.5",
-    "holos-wasm": "^0.21.0",
+    "holos-wasm": "^0.21.1",
     "hylar-core": "^1.2.2",
     "monaco-editor": "^0.56.0",
     "n3": "^2.2.5",
@@ -48,8 +48,9 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.4",
     "globals": "^17.11.0",
-    "holos-wasm-node": "^0.21.0",
+    "holos-wasm-node": "^0.21.1",
     "prettier": "^3.9.6",
+    "shacl-wasm-node": "^0.3.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.67.0",
     "vite": "^7.3.6",
