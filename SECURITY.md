@@ -67,7 +67,7 @@ All rendering of data-derived text is by `textContent` or escaped interpolation:
 
 ## Dependencies
 
-`package.json` lists only what the source imports (verified by scanning for import specifiers). As of 2.3.5 `npm audit` reports seventeen advisories, and one package among them ships: DOMPurify 3.4.15, as vendored inside `monaco-editor`'s own bundle (`dist/monaco/vs/editor-*.js`). Five advisories are against that copy:
+`package.json` lists only what the source imports (verified by scanning for import specifiers). `npm audit` lists fourteen vulnerable packages, and one of them ships: DOMPurify 3.4.15, as vendored inside `monaco-editor`'s own bundle (`dist/monaco/vs/editor-*.js`). Five advisories are against that copy:
 
 - one critical: `SAFE_FOR_TEMPLATES` with DOM output;
 - one high and two low: `IN_PLACE` with hooks;
@@ -75,9 +75,9 @@ All rendering of data-derived text is by `textContent` or escaped interpolation:
 
 Monaco calls DOMPurify with none of those options. Its `domSanitize.js` sets neither `SAFE_FOR_TEMPLATES`, `IN_PLACE` nor `PARSER_MEDIA_TYPE`, and returns a DOM fragment or trusted HTML through its own hooks. The only markdown Monaco sanitises here is the app's own static completion text.
 
-Only a Monaco release can move that copy: Monaco vendors it rather than importing the package, so an npm override would change nothing that ships. `monaco-editor` 0.57.0 is the latest, carries 3.4.15, and the advisories need 3.4.17. 0.57.0 did move it once already, from 0.56.0's 3.4.8, which cleared four earlier advisories.
+npm lists `monaco-editor` among the fourteen as well, for the same copy. Only a Monaco release can move it: Monaco vendors it rather than importing the package, so an npm override would change nothing that ships. `monaco-editor` 0.57.0 is the latest, carries 3.4.15, and the advisories need 3.4.17. 0.57.0 did move it once already, from 0.56.0's 3.4.8, which cleared four earlier advisories.
 
-The other twelve are development tooling: the eslint and typescript-eslint chain, vitest, and zod through an eslint plugin. None of them is in `dist/`, which is checked by grepping it rather than assumed. They are not yet resolved: `npm audit fix` currently fails inside npm on this tree. Earlier transitive advisories that were build-time only (eslint's `brace-expansion`, Vite's `source-map-js`) or absent from the browser bundle (the Node HTTP client behind the JSON-LD serialiser's `undici`) were resolved, not accepted.
+The other twelve are the eslint and typescript-eslint chain, all through one advisory against `minimatch`: a denial of service on crafted glob patterns. It needs `minimatch` 11, and eslint 9 itself depends on 3, so no release in range fixes it; npm's suggested fix is a downgrade of `typescript-eslint`. eslint is development-only and its globs here come from this repository's own configuration. None of the chain is in `dist/`, which is checked by grepping it rather than assumed. vitest and zod, which also had advisories, were resolved within their ranges with npm 11's `audit fix`; npm 10's fails inside npm itself on this tree. Earlier transitive advisories that were build-time only (eslint's `brace-expansion`, Vite's `source-map-js`) or absent from the browser bundle (the Node HTTP client behind the JSON-LD serialiser's `undici`) were resolved, not accepted.
 
 Inference is bounded. SHACL-AF rules run inside the WebAssembly engine on a copy of the parsed data; the text in the tab is not changed. *rules, iterated* stops after ten rounds, and a rule set that keeps producing new terms stops with an error rather than running until memory is exhausted. A hostile shapes graph can still make a single validation slow, as a hostile SPARQL query can; neither can reach outside the page.
 
