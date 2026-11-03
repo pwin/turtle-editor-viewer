@@ -67,9 +67,17 @@ All rendering of data-derived text is by `textContent` or escaped interpolation:
 
 ## Dependencies
 
-`package.json` lists only what the source imports (verified by scanning for import specifiers). `npm audit` reports two low advisories, both DOMPurify as pinned inside `monaco-editor`'s own bundle. The affected APIs (`IN_PLACE`, `CUSTOM_ELEMENT_HANDLING`, `setConfig`/`clearConfig`) are not how Monaco calls it, and the only markdown Monaco sanitises here is the app's own static completion text.
+`package.json` lists only what the source imports (verified by scanning for import specifiers). As of 2.3.5 `npm audit` reports seventeen advisories, and one package among them ships: DOMPurify 3.4.15, as vendored inside `monaco-editor`'s own bundle (`dist/monaco/vs/editor-*.js`). Five advisories are against that copy:
 
-Only a Monaco release can move that pin, and one did: `monaco-editor` 0.57.0 carries DOMPurify 3.4.15 in place of 0.56.0's 3.4.8, which takes the bundled copy out of range for four of the five advisories against it. The fifth needs 3.4.16, which no Monaco release carries yet. Everything else `npm audit` has reported has been resolved rather than accepted; where a transitive advisory is build-time only (eslint's `brace-expansion`, Vite's `source-map-js`) or absent from the browser bundle (the Node HTTP client behind the JSON-LD serialiser's `undici`), that is checked by grepping `dist/` rather than assumed.
+- one critical: `SAFE_FOR_TEMPLATES` with DOM output;
+- one high and two low: `IN_PLACE` with hooks;
+- one low: the SMIL guard under `PARSER_MEDIA_TYPE: application/xhtml+xml`.
+
+Monaco calls DOMPurify with none of those options. Its `domSanitize.js` sets neither `SAFE_FOR_TEMPLATES`, `IN_PLACE` nor `PARSER_MEDIA_TYPE`, and returns a DOM fragment or trusted HTML through its own hooks. The only markdown Monaco sanitises here is the app's own static completion text.
+
+Only a Monaco release can move that copy: Monaco vendors it rather than importing the package, so an npm override would change nothing that ships. `monaco-editor` 0.57.0 is the latest, carries 3.4.15, and the advisories need 3.4.17. 0.57.0 did move it once already, from 0.56.0's 3.4.8, which cleared four earlier advisories.
+
+The other twelve are development tooling: the eslint and typescript-eslint chain, vitest, and zod through an eslint plugin. None of them is in `dist/`, which is checked by grepping it rather than assumed. They are not yet resolved: `npm audit fix` currently fails inside npm on this tree. Earlier transitive advisories that were build-time only (eslint's `brace-expansion`, Vite's `source-map-js`) or absent from the browser bundle (the Node HTTP client behind the JSON-LD serialiser's `undici`) were resolved, not accepted.
 
 Inference is bounded. SHACL-AF rules run inside the WebAssembly engine on a copy of the parsed data; the text in the tab is not changed. *rules, iterated* stops after ten rounds, and a rule set that keeps producing new terms stops with an error rather than running until memory is exhausted. A hostile shapes graph can still make a single validation slow, as a hostile SPARQL query can; neither can reach outside the page.
 
