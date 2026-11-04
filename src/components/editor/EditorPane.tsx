@@ -2,6 +2,7 @@ import { useEffect, useRef, Suspense, lazy } from 'react'
 import EditorToolbar from './EditorToolbar'
 import EditorTabs from './EditorTabs'
 import { useAppContext } from '@/store/AppProvider'
+import { useGraphRegeneration } from '@/components/graph/useGraphRegeneration'
 import { SOURCE_TAB_ID } from '@/store/editor-tabs'
 import { RDFParser } from '@/services/rdf-parser'
 import { GraphGenerator } from '@/services/graph-generator'
@@ -13,6 +14,7 @@ const MonacoEditorComponent = lazy(() => import('./MonacoEditorComponent'))
 
 function EditorPane() {
   const { state, dispatch } = useAppContext()
+  const generateGraph = useGraphRegeneration()
 
   // Check for URL parameters on mount
   useEffect(() => {
@@ -171,10 +173,18 @@ function EditorPane() {
     dispatch({ type: 'SET_EDITOR_CONTENT', payload: content })
   }
 
-  // Auto-select first 10 subjects when RDF data is loaded
+  // Auto-select first 10 subjects when RDF data is loaded, and draw them.
+  //
+  // The drawing is the point: picking the subjects only filled the list, and
+  // nothing redraws on a selection change by itself, so a document opened from
+  // a link showed ten subjects selected beside "No graph data to display"
+  // until the user touched the picker -- while the guide said there would be
+  // something to look at straight away.
   useEffect(() => {
     if (state.rdf.subjects.length > 0 && state.rdf.selectedSubjects.length === 0 && state.editor.language !== 'dot') {
-      dispatch({ type: 'SET_SELECTED_SUBJECTS', payload: state.rdf.subjects.slice(0, 10) })
+      const first = state.rdf.subjects.slice(0, 10)
+      dispatch({ type: 'SET_SELECTED_SUBJECTS', payload: first })
+      void generateGraph(state.editor.content, first, state.graph.options)
     }
   }, [state.rdf.subjects, state.editor.language])
 
