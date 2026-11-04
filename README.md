@@ -7,8 +7,9 @@ A modern, React-based RDF/Turtle editor and graph visualizer built with TypeScri
 - **RDF/Turtle Editing**: Syntax-highlighted editor with support for Turtle, RDF/XML, JSON-LD, and DOT formats, in tabs
 - **RDF 1.2**: Triple terms `<<( s p o )>>`, annotations `{| |}` and directional literals are parsed, queried, drawn and serialised in Turtle (see [USER_GUIDE.md](USER_GUIDE.md) §5 for what RDF/XML and JSON-LD don't yet cover)
 - **Graph Visualization**: Real-time graph rendering using Graphviz with interactive pan/zoom; triple terms drawn in dark green with optional links to what they mention
+- **Exploring Outwards**: click any node and a panel lists everything that refers to it, each with a checkbox that adds or removes that subject from the diagram, so a graph can be walked outwards from what is on screen
 - **Human-readable Labels**: `rdfs:label` / `skos:prefLabel` in the subject list and on diagram nodes and edges, with collisions disambiguated
-- **SPARQL 1.2 Queries**: Execute SELECT, CONSTRUCT, DESCRIBE and ASK queries with Comunica; results in the SPARQL 1.2 JSON format
+- **SPARQL 1.2 Queries**: Execute SELECT, CONSTRUCT, DESCRIBE and ASK queries with holosdb, a WebAssembly build of the HOLOS store and engine; GeoSPARQL included, results in the SPARQL 1.2 JSON format, and `SERVICE` fetched by the host against an allow-list
 - **Graph Results as Documents**: CONSTRUCT / DESCRIBE output opens in a new editor tab, deduplicated and using the source's prefixes, and is drawn straight away
 - **SHACL Validation**: validate the active tab against shapes in another tab with a WebAssembly build of the `holos` engine (SHACL Core + SHACL-SPARQL, RDF 1.2 data); report as a table, as a tab, or as Turtle. An **Inference** dropdown validates the RDFS closure, or runs the shapes' SHACL-AF rules (`sh:rule`) first, once or to a fixpoint
 - **Query Plan Analyser**: `Explain` shows the engine's plan with the rows and time at each step, drawn as a tree in the diagram pane, with the step that emptied the query marked

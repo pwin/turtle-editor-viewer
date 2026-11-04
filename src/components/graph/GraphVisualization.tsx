@@ -1,6 +1,8 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { useAppContext } from '@/store/AppProvider'
 import { escapeHtml } from '@/utils/html'
+import { referencingSubjects } from '@/utils/references'
+import ReferencesPanel, { type References } from './ReferencesPanel'
 import './GraphVisualization.css'
 
 // Declare global functions
@@ -26,6 +28,10 @@ function GraphVisualization() {
   // own DOT rather than overwriting it, so clearing the plan brings the data
   // diagram straight back with nothing to regenerate.
   const dotText = queryPlan.dotText || graph.dotText
+
+  // What the last clicked node is referred to by. Local, because it is a
+  // view of the data rather than part of it, and it closes with the panel.
+  const [references, setReferences] = useState<References | null>(null)
 
   // Keep a ref to state to access latest values in global callbacks
   const stateRef = useRef(state)
@@ -410,26 +416,13 @@ function GraphVisualization() {
   // Register global function for graph interaction
   useEffect(() => {
     window.findTriplesForObject = (objectValue: string) => {
-      // Use the ref to get the latest state without relying on closure capture at effect time
-      const currentState = stateRef.current
-      const quads = currentState.rdf.quads
-      const prefixes = currentState.rdf.prefixes
-      const subjects: string[] = []
-
-      quads.forEach(quad => {
-        if (quad.object.value === objectValue) {
-          subjects.push(RDFParser.shrinkIRI(quad.subject.value, prefixes))
-        }
+      // Read through the ref rather than the closure: this is registered once
+      // and has to see the document as it is now.
+      const { rdf } = stateRef.current
+      setReferences({
+        object: objectValue,
+        subjects: referencingSubjects(rdf.quads, objectValue, rdf.prefixes),
       })
-
-      // Sort subjects alphabetically and remove duplicates
-      const uniqueSubjects = Array.from(new Set(subjects)).sort()
-
-      if (uniqueSubjects.length > 0) {
-        alert("Matching Subjects:\n" + uniqueSubjects.join('\n'))
-      } else {
-        alert("No matching subjects found for object: " + objectValue)
-      }
     }
 
     return () => {
@@ -450,6 +443,9 @@ function GraphVisualization() {
         onContextMenu={handleContextMenu}
         onClick={handleClick}
       />
+      {references && (
+        <ReferencesPanel references={references} onClose={() => setReferences(null)} />
+      )}
     </div>
   )
 }

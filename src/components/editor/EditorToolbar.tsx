@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useAppContext } from '@/store/AppProvider'
-import { GraphGenerator } from '@/services/graph-generator'
-import { RDFParser } from '@/services/rdf-parser'
+import { useGraphRegeneration } from '@/components/graph/useGraphRegeneration'
 import { buildSubjectOptions } from '@/utils/label-utils'
 import type { EditorLanguage, EditorTheme } from '@/types'
 import './EditorToolbar.css'
@@ -10,6 +9,7 @@ function EditorToolbar() {
   const { state, dispatch } = useAppContext()
   const { graph, rdf } = state
   const [subjectFilter, setSubjectFilter] = useState('')
+  const generateGraph = useGraphRegeneration()
 
   const isDotMode = state.editor.language === 'dot'
 
@@ -71,57 +71,6 @@ function EditorToolbar() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
-
-  const generateGraph = async (content: string, selectedSubjects: string[], options: any) => {
-    if (selectedSubjects.length === 0) {
-      dispatch({ type: 'SET_GRAPH_DOT_TEXT', payload: '' })
-      return
-    }
-
-    try {
-      dispatch({ type: 'SET_GRAPH_GENERATING', payload: true })
-      
-      // Check if we have RDF data or DOT content
-      if (content.trim().toLowerCase().startsWith('digraph')) {
-        // For DOT files, use generator to apply layout options
-        const generator = new GraphGenerator()
-        const graphResult = generator.generateDotFromDot(content, options)
-        
-        if (graphResult.error) {
-          dispatch({ type: 'SET_GRAPH_ERROR', payload: graphResult.error })
-        } else {
-          dispatch({ type: 'SET_GRAPH_DOT_TEXT', payload: graphResult.dotText })
-          dispatch({ type: 'SET_GRAPH_ERROR', payload: null })
-        }
-      } else {
-        // For RDF content, generate filtered graph
-        const parser = new RDFParser()
-        const result = await parser.parseRDF(content, state.editor.language)
-        
-        if (!result.error && result.quads.length > 0) {
-          const generator = new GraphGenerator()
-          const graphResult = generator.generateDotFromRDF(
-            result.quads,
-            selectedSubjects,
-            options,
-            result.prefixes,
-            result.labels ?? {}
-          )
-          
-          if (graphResult.error) {
-            dispatch({ type: 'SET_GRAPH_ERROR', payload: graphResult.error })
-          } else {
-            dispatch({ type: 'SET_GRAPH_DOT_TEXT', payload: graphResult.dotText })
-            dispatch({ type: 'SET_GRAPH_ERROR', payload: null })
-          }
-        }
-      }
-    } catch (error) {
-      dispatch({ type: 'SET_GRAPH_ERROR', payload: `Error generating graph: ${error}` })
-    } finally {
-      dispatch({ type: 'SET_GRAPH_GENERATING', payload: false })
-    }
   }
 
   const handleSubjectSelectionChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {

@@ -146,7 +146,7 @@
             <li><strong>Prefixes</strong>: show shortened names like <code>rdf:type</code> instead of full IRIs.</li>
             <li><strong>Hide Types</strong>: leave out <code>rdf:type</code> arrows to cut the clutter.</li>
             <li><strong>Hide Annotations</strong>: leave out labels, comments and the like, so you see structure rather than description.</li>
-            <li><strong>Subjects</strong>: makes the nodes clickable. Click one and a pop-up lists every subject that points at it. On by default; untick it if the pop-ups get in the way while you pan.</li>
+            <li><strong>Subjects</strong>: makes the nodes clickable, which is how the panel described under <a href="#exploring">Exploring outwards</a> opens. On by default; untick it if you would rather click without that happening.</li>
             <li><strong>Sort Subjects</strong>: list subjects alphabetically rather than in the order they appear in the file.</li>
             <li><strong>Node Labels</strong> and <strong>Property Labels</strong>: use <code>rdfs:label</code>/<code>skos:prefLabel</code> names in the diagram, for the boxes and for the arrows respectively, the same way <strong>Show labels</strong> does for the subject list. Both are on by default. Turn them off to see the raw IRIs.</li>
             <li><strong>Link Triple Terms</strong>: see the next section.</li>
@@ -161,8 +161,18 @@
         <h3>Getting around</h3>
         <ul>
             <li><strong>Pan and zoom</strong>: scroll to zoom, drag to pan (SVG only).</li>
-            <li><strong>Click a node</strong> and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value. (That's the <strong>Subjects</strong> option; untick it to turn the pop-ups off.)</li>
+            <li><strong>Click a node</strong> to explore outwards from it; see below.</li>
         </ul>
+
+        <h3 id="exploring">Exploring outwards</h3>
+        <p>Click any node in the diagram and a panel opens listing <strong>everything in the data that refers to it</strong> &mdash; every subject of a triple whose object is the thing you clicked. It works for an IRI, a literal and a blank node alike, since all three are nodes you can click.</p>
+        <p>Each entry has a <strong>checkbox</strong>, ticked when that subject is already drawn:</p>
+        <ul>
+            <li><strong>Tick one</strong> and it joins the diagram, with its own properties, immediately.</li>
+            <li><strong>Untick one</strong> and it leaves again.</li>
+        </ul>
+        <p>So you can start from a single subject and walk the graph outwards by following what points at what, which is usually easier than hunting for the right name in the subject list &mdash; especially when the IRIs are opaque. The names in the panel are the same ones the subject list shows, labels and all, and hovering over an entry gives its full IRI.</p>
+        <p>The panel sits over the top-right of the diagram and stays until you close it with its <strong>&times;</strong>, so you can tick several things in turn and watch the picture grow. Ticking here is the same act as selecting in the subject list: the two always agree, and whichever tab you are on keeps its own selection.</p>
 
         <h2>4. Querying with SPARQL</h2>
         <p>The <strong>SPARQL &amp; SHACL</strong> panel at the bottom right runs SPARQL against the tab that's in front. (Its other job, validation, is <a href="#shacl">section 5</a>.)</p>
@@ -334,7 +344,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         </ul>
 
         <div class="footer">
-            <p>Turtle Editor Viewer v2.3.6</p>
+            <p>Turtle Editor Viewer v2.4.0</p>
         </div>
     </div>
 </body>

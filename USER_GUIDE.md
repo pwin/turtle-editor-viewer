@@ -76,7 +76,7 @@ The Graph toolbar lets you change how the diagram is laid out and drawn:
 - **Prefixes**: show shortened names like `rdf:type` instead of full IRIs.
 - **Hide Types**: leave out `rdf:type` arrows to cut the clutter.
 - **Hide Annotations**: leave out labels, comments and the like, so you see structure rather than description.
-- **Subjects**: makes the nodes clickable. Click one and a pop-up lists every subject that points at it. On by default; untick it if the pop-ups get in the way while you pan.
+- **Subjects**: makes the nodes clickable, which is how the panel described under [Exploring outwards](#exploring-outwards) opens. On by default; untick it if you would rather click without that happening.
 - **Sort Subjects**: list subjects alphabetically rather than in the order they appear in the file.
 - **Node Labels** and **Property Labels**: use `rdfs:label`/`skos:prefLabel` names in the diagram, for the boxes and for the arrows respectively, the same way **Show labels** does for the subject list. Both are on by default. Turn them off to see the raw IRIs.
 - **Link Triple Terms**: see the next section.
@@ -91,7 +91,19 @@ Tick **Link Triple Terms** and each green node also gets dashed dark-green arrow
 
 ### Getting around
 - **Pan and zoom**: scroll to zoom, drag to pan (SVG only).
-- **Click a node** and a pop-up lists every subject that points at it, which is a quick way to find who refers to a value. (That's the **Subjects** option; untick it to turn the pop-ups off.)
+- **Click a node** to explore outwards from it; see below.
+
+### Exploring outwards
+Click any node in the diagram and a panel opens listing **everything in the data that refers to it** — every subject of a triple whose object is the thing you clicked. It works for an IRI, a literal and a blank node alike, since all three are nodes you can click.
+
+Each entry has a **checkbox**, ticked when that subject is already drawn:
+
+- **Tick one** and it joins the diagram, with its own properties, immediately.
+- **Untick one** and it leaves again.
+
+So you can start from a single subject and walk the graph outwards by following what points at what, which is usually easier than hunting for the right name in the subject list — especially when the IRIs are opaque. The names in the panel are the same ones the subject list shows, labels and all, and hovering over an entry gives its full IRI.
+
+The panel sits over the top-right of the diagram and stays until you close it with its **×**, so you can tick several things in turn and watch the picture grow. Ticking here is the same act as selecting in the subject list: the two always agree, and whichever tab you are on keeps its own selection.
 
 ## 4. Querying with SPARQL
 
@@ -274,4 +286,4 @@ Data can't run code, either. Everything that comes from a file, IRIs, labels, li
 - **Nothing here is a substitute for your own review.** The source is public; the checks described are the ones that have been done, and the [SECURITY.md](SECURITY.md) file in the repository says how to repeat them.
 
 ---
-*Turtle Editor Viewer v2.3.6*
+*Turtle Editor Viewer v2.4.0*
