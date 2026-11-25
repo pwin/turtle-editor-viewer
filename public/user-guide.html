@@ -186,7 +186,7 @@
         </ol>
 
         <h3>What you can ask</h3>
-        <p>The engine (Comunica) speaks SPARQL 1.2, so everything from 1.1 plus the newer additions:</p>
+        <p>The engine (HOLOS, from <a href="https://github.com/pwin/SemopsSystem">SemOps System</a>) speaks SPARQL 1.2, so everything from 1.1 plus the newer additions:</p>
         <ul>
             <li><code>SELECT</code>: a table of answers.</li>
             <li><code>ASK</code>: yes or no.</li>
@@ -233,7 +233,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         </ul>
 
         <h2 id="shacl">5. Validating with SHACL</h2>
-        <p>SHACL is the other way to ask a question of your data: instead of a query that returns rows, a set of <strong>shapes</strong> that say what well-formed data looks like, and a report of everywhere the data falls short. The editor runs a full SHACL engine in the browser (the same one behind <a href="https://github.com/pwin/SHACL_Engine"><code>holos</code></a>, compiled to WebAssembly): SHACL Core and SHACL-SPARQL, so <code>sh:sparql</code> constraints and SPARQL-based targets work too, and it reads RDF 1.2 data.</p>
+        <p>SHACL is the other way to ask a question of your data: instead of a query that returns rows, a set of <strong>shapes</strong> that say what well-formed data looks like, and a report of everywhere the data falls short. The editor runs a full SHACL engine in the browser (<a href="https://github.com/pwin/SemopsSystem">SemOps System</a>'s, compiled to WebAssembly in the same module as the SPARQL engine): SHACL Core and SHACL-SPARQL, so <code>sh:sparql</code> constraints and SPARQL-based targets work too, and it reads RDF 1.2 data.</p>
 
         <h3>Running a validation</h3>
         <ol>
@@ -266,7 +266,7 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         </ul>
 
         <h2 id="rdf-1-2">6. RDF 1.2 and SPARQL 1.2</h2>
-        <p>The parser (n3.js 2.2) and the query engine (Comunica 5.3) both speak the 1.2 versions of the standards, and the app has been checked against each feature below. Here's what you can rely on, and what to watch for.</p>
+        <p>The parser (n3.js 2.2) and the query engine (HOLOS, in SemOps System 0.31) both speak the 1.2 versions of the standards, and the app has been checked against each feature below. Here's what you can rely on, and what to watch for.</p>
 
         <h3>What works</h3>
         <ul>
@@ -311,17 +311,17 @@ QuadPattern(?shop bs:inSettlement ?s)         0 rows    0 ms
         <p>This tool is built so that it can be used with data you'd rather not send anywhere. Here is exactly what that means, in plain terms, so you can decide for yourself.</p>
 
         <h3>Everything runs in the page</h3>
-        <p>The Turtle parser, the Graphviz renderer, the SPARQL engine (Comunica), the reasoner (Hylar) and the SHACL engine (a WebAssembly build of <code>holos</code>) all run inside your browser tab. They're served from the same place as the page itself, never from a content-delivery network, and none of them phones home. There's no analytics, no telemetry, no crash reporting, and no "look up this prefix online" convenience. The one such lookup a library used to carry (prefix.cc, inside a serialiser this app never calls) has been cut out of the build altogether.</p>
+        <p>The Turtle parser, the Graphviz renderer, the SPARQL and SHACL engines (SemOps System, one WebAssembly module) and the reasoner (Hylar) all run inside your browser tab. They're served from the same place as the page itself, never from a content-delivery network, and none of them phones home. There's no analytics, no telemetry, no crash reporting, and no "look up this prefix online" convenience. The one such lookup a library used to carry (prefix.cc, inside a serialiser this app never calls) has been cut out of the build altogether. The engines have no way to make a network request at all. SemOps System's server can send performance figures to a monitoring service; that code isn't in the browser build, and the editor's tests fail if a new version ever brings it in.</p>
 
         <h3>The only things that leave the browser, and only when you ask</h3>
         <ul>
             <li><strong>A URL you load.</strong> <em>Load URL</em> in the Graph toolbar, and <code>?dot=</code>, <code>?rdfa=</code> and <code>?shapes=</code> in the page address, fetch the address you give. The server at that address sees the request, as any web fetch does. Nothing from your editor goes with it.</li>
-            <li><strong>A <code>SERVICE</code> clause in a query you run.</strong> Federation is part of SPARQL, and the course uses it. When your query names an endpoint, the part of the query inside the <code>SERVICE</code> block, along with the bindings needed to answer it, goes to that endpoint. That's the one way anything from the tab reaches another server, and it happens only because the query you wrote says so. If you've pasted something sensitive into the editor, don't then run a <code>SERVICE</code> query that joins it against a public endpoint.</li>
+            <li><strong>A <code>SERVICE</code> clause in a query you run.</strong> Federation is part of SPARQL, and the course uses it. When your query names an endpoint, the part of the query inside the <code>SERVICE</code> block, along with the bindings needed to answer it, goes to that endpoint. Only <code>https</code> endpoints on the editor's short allow-list (DBpedia and Wikidata) are called; any other is refused with a message saying so, so a query file someone sends you can't make your browser call somewhere new. That's the one way anything from the tab reaches another server, and it happens only because the query you wrote says so. If you've pasted something sensitive into the editor, don't then run a <code>SERVICE</code> query that joins it against a public endpoint.</li>
         </ul>
         <p>That's the whole list. In particular:</p>
         <ul>
             <li><strong>JSON-LD contexts are not fetched.</strong> A JSON-LD document whose <code>@context</code> is a URL would normally make the parser go and get it; here it's refused with a message asking you to paste the context into the document. That request would have been made by the document, not by you.</li>
-            <li><strong>Shapes can't reach out.</strong> The SHACL engine rejects <code>SERVICE</code> inside <code>sh:sparql</code> constraints outright.</li>
+            <li><strong>Shapes can't reach out.</strong> The SHACL engine rejects <code>SERVICE</code> inside <code>sh:sparql</code> constraints, SPARQL targets and rules outright.</li>
             <li><strong>Nothing is stored.</strong> No cookies, no local storage, no account. Close the tab and it's gone.</li>
         </ul>
 

@@ -111,7 +111,7 @@ async function comunicaRunner(quads) {
  * nobody has to choose.
  */
 async function holosRunner(quads) {
-  const holos = await import('holos-wasm-node');
+  const holos = await import('semops-wasm-node');
   const store = new holos.Store();
 
   const writer = new Writer({ format: 'N-Quads' });

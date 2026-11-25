@@ -34,13 +34,14 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           rdf: ['n3'],
-          // monaco-editor itself is loaded from the CDN at runtime by
-          // @monaco-editor/react, so only the wrapper belongs in the bundle.
+          // monaco-editor itself is served from public/monaco/vs on this origin
+          // (scripts/setup-monaco.mjs) and loaded at runtime by @monaco-editor/react,
+          // so only the wrapper belongs in the bundle.
           editor: ['@monaco-editor/react'],
-          // Not holos-wasm: it is loaded by hand from its glue module and a `?url` asset
-          // (see services/holos-engine.ts), so naming it here would make Rollup treat the
+          // Not semops-wasm: it is loaded by hand from its glue module and a `?url` asset
+          // (see services/semops-engine.ts), so naming it here would make Rollup treat the
           // unbuildable entry module as a chunk entry.
-          sparql: ['holos-wasm/holos_wasm_bg.js'],
+          engine: ['semops-wasm/semops_wasm_bg.js'],
           utils: ['file-saver'],
         },
       },
@@ -49,9 +50,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@monaco-editor/react', 'n3'],
-    // holos-wasm is deliberately not pre-bundled: it is a wasm-bindgen ESM package whose
+    // semops-wasm is deliberately not pre-bundled: it is a wasm-bindgen ESM package whose
     // glue resolves its .wasm relative to itself, and esbuild's dep optimiser rewrites that
     // path. Vite handles it correctly as a normal dependency.
-    exclude: ['holos-wasm'],
+    exclude: ['semops-wasm'],
   },
 })

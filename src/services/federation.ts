@@ -1,7 +1,7 @@
 /**
  * Fetching for `SERVICE`, which the engine cannot do for itself.
  *
- * `holos-wasm` has no network client. It reports the `(endpoint, query)` pairs a federated
+ * `semops-wasm` has no network client. It reports the `(endpoint, query)` pairs a federated
  * query wants and leaves the fetching to whoever is hosting it, which is this file. That is
  * the design rather than a gap: the engine cannot be made to request anything, so the decision
  * about what may be called lives here, in one readable place, instead of inside a wasm module.

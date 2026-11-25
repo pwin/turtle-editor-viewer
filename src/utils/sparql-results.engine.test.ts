@@ -7,12 +7,12 @@
  * engine reported a triple term as `termType: 'Quad'` with no subject, predicate or object, the
  * encoder read `.subject` of `undefined`, and nothing failed until somebody ran the query.
  *
- * So this runs the real engine -- `holos-wasm-node`, the same WebAssembly binary the browser
+ * So this runs the real engine -- `semops-wasm-node`, the same WebAssembly binary the browser
  * loads, with Node glue instead of browser glue -- and asserts on what comes back. It is a
  * contract test, and what it protects is the boundary rather than either side of it.
  */
 import { describe, expect, it } from 'vitest'
-import { Store } from 'holos-wasm-node'
+import { Store } from 'semops-wasm-node'
 import { formatResultTerm, resultVars, termToResult, type ResultRow } from './sparql-results'
 
 /** A SELECT row as the engine returns it, encoded as the results pane encodes it. */

@@ -13,7 +13,7 @@ Out of scope: the browser itself, the web server hosting the app, and the SPARQL
 
 ## Network posture
 
-**The app makes no network requests of its own.** Every asset it needs (JavaScript, CSS, fonts, the Monaco editor, viz.js, the SHACL WebAssembly engine) is served from the deployed folder on the same origin.
+**The app makes no network requests of its own.** Every asset it needs (JavaScript, CSS, fonts, the Monaco editor, viz.js, and the SPARQL and SHACL engine, one WebAssembly module) is served from the deployed folder on the same origin.
 
 Outbound requests happen only when the user asks for them:
 
@@ -23,6 +23,9 @@ Outbound requests happen only when the user asks for them:
 | `SERVICE <endpoint>` in a query the user runs | The `SERVICE` pattern and the bindings needed to evaluate it | The endpoint named |
 
 Implicit requests that libraries would otherwise make have been removed:
+
+- **The engine has no network client and no telemetry.** SPARQL and SHACL run in `semops-wasm`, from [SemOps System](https://github.com/pwin/SemopsSystem) ([semops-engine.ts](src/services/semops-engine.ts)). SemOps System's server exports OpenTelemetry over OTLP/HTTP, but that code is in `holos-server`, which no WebAssembly crate depends on: 0.31.0's wasm dependency tree has no HTTP client, async runtime or telemetry crate. The module can do only what its imports let it: the clock, `crypto.getRandomValues`, `console.error` for a panic, and object, array and error constructors. [semops-engine.containment.test.ts](src/services/semops-engine.containment.test.ts) checks that on every upgrade. It fails if the module asks for an import outside that reviewed set or loads a module other than its own glue, if the glue names any network or DOM API, or if the binary carries the server's telemetry or HTTP crates. It also drives the engine every way a query or shapes graph could reach out (`SERVICE`, federated `SERVICE`, `LOAD <https://…>`, `SERVICE` in a shape's constraint, target or rule) with `fetch` trapped, and fails if anything is fetched.
+- **`SERVICE` is fetched by the page, not the engine.** The engine reports the `(endpoint, query)` pairs a federated query needs; [federation.ts](src/services/federation.ts) calls only `https` endpoints on its allow-list (DBpedia, Wikidata) and refuses the rest. A plain query's `SERVICE`, and a `LOAD` of a remote document, are refused by the engine itself.
 
 - **prefix.cc lookups** (`@jeswr/prefixcc`, a dependency of Comunica's SHACL-Compact serialiser, which this app never invokes) are replaced at build time by a stub that rejects ([vite.config.ts](vite.config.ts), [src/stubs/prefixcc.ts](src/stubs/prefixcc.ts)). The fetch code is not in the bundle.
 - **Remote JSON-LD contexts** are refused by a `documentLoader` that rejects ([src/services/rdf-parser.ts](src/services/rdf-parser.ts)); a document referencing one gets an error asking for the context inline.
@@ -49,7 +52,7 @@ base-uri 'self';
 form-action 'none'
 ```
 
-- `script-src 'self'`: no inline scripts, no `javascript:` URLs, no `eval`/`new Function`. `'wasm-unsafe-eval'` allows WebAssembly compilation (the SHACL engine) without allowing JavaScript eval.
+- `script-src 'self'`: no inline scripts, no `javascript:` URLs, no `eval`/`new Function`. `'wasm-unsafe-eval'` allows WebAssembly compilation (the SPARQL and SHACL engine) without allowing JavaScript eval.
 - `connect-src 'self' https: http:` is what `SERVICE` and *Load URL* need. Deployments that want an allow-list should send a `Content-Security-Policy` header with a narrower `connect-src`; the browser enforces the intersection of the header and the meta policy.
 - `style-src 'unsafe-inline'`, `font-src data:` and `worker-src blob:` are what Monaco needs (injected styles, an embedded icon font, blob-bootstrapped workers). None of these permits script execution.
 - `frame-ancestors` cannot be set from a meta tag; add it in the server header if clickjacking is a concern.
@@ -93,7 +96,11 @@ grep -ohE "https?://[a-z0-9.-]+\.[a-z]{2,}" dist/assets/*.js | sort | uniq -c | 
                                             # hostnames in the bundle: identifiers and comments, not fetch targets
 grep -c "Content-Security-Policy" dist/index.html
 npx vitest run                              # includes the injection regression tests
+npx vitest run src/services/semops-engine.containment.test.ts
+                                            # the engine: no network, no telemetry, nothing fetched
 ```
+
+When upgrading `semops-wasm`, a failure in the containment test means the engine can now do something it could not before. Read the new import's glue, or the new crate's purpose, before widening the reviewed set.
 
 For a runtime check, serve `dist/` (`npm run preview`) and load it in a browser with the console open: any policy violation appears as a "Refused to …" message. In headless Edge or Chrome, `--enable-logging=stderr --log-level=0 --dump-dom <url>` captures the same messages.
 

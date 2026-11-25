@@ -7,7 +7,7 @@
       promised: scripts run from this origin alone (no inline scripts, no
       javascript: URLs, no eval), and the page may connect only to itself and
       to HTTP(S) endpoints, which is what SPARQL SERVICE and "Load URL" need.
-      'wasm-unsafe-eval' permits the SHACL engine's WebAssembly without
+      'wasm-unsafe-eval' permits the SPARQL and SHACL engine's WebAssembly without
       permitting JavaScript eval; blob: workers are how Monaco starts its
       language workers; 'unsafe-inline' styles are Monaco's and React's own.
       A stricter connect-src, say a list of approved endpoints, belongs in

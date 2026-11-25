@@ -9,7 +9,7 @@
  * WebAssembly binary the browser loads, with Node glue instead of browser glue.
  */
 import { describe, expect, it } from 'vitest'
-import { Store } from 'holos-wasm-node'
+import { Store } from 'semops-wasm-node'
 import { flattenPlan, generatePlanDot, isCollapsePoint, parseQueryPlan } from './query-plan'
 
 const TURTLE = `@prefix ex: <http://ex/> .

@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Parser, Writer } from 'n3';
 import type { RDFQuad } from '@/types';
 import { quadsToTurtle, resultVars, termToResult, type ResultRow } from '@/utils/sparql-results';
-import { loadHolosEngine } from '@/services/holos-engine';
+import { loadSemopsEngine } from '@/services/semops-engine';
 import { runFederatedQuery, type FederatableStore } from '@/services/federation';
 import { describeLoadFailure } from '@/services/relative-iri';
 
@@ -100,10 +100,10 @@ export function useSparqlEngine() {
     cached.current?.store.free?.();
     cached.current = null;
 
-    // Loaded through services/holos-engine, which instantiates the binary by hand -- the
+    // Loaded through services/semops-engine, which instantiates the binary by hand -- the
     // package's own entry module uses the ESM-integration proposal for Wasm, which Vite
-    // cannot build. Same arrangement as the SHACL engine next to it.
-    const { Store } = await loadHolosEngine();
+    // cannot build. The SHACL validator is in the same module and shares the instance.
+    const { Store } = await loadSemopsEngine();
     const store = new Store() as unknown as HolosStore;
     if (quads.length > 0) {
       const writer = new Writer({ format: 'N-Quads' });
