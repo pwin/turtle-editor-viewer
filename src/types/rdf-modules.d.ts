@@ -1,18 +1,13 @@
 declare module '@rdfjs/parser-jsonld';
 declare module '@rdfjs/serializer-jsonld-ext';
 
-// The wasm-bindgen glue behind `shacl-wasm`. The package's entry module imports
-// its .wasm as an ES module, which Vite does not do, so services/shacl-engine.ts
-// instantiates the binary itself and hands it to this module's __wbg_set_wasm.
-declare module 'shacl-wasm/shacl_wasm_bg.js' {
+// The wasm-bindgen glue behind `semops-wasm`, the SPARQL store and the SHACL
+// validator in one module. The package's entry module imports its .wasm as an
+// ES module, which Vite does not do, so services/semops-engine.ts instantiates
+// the binary itself and hands it to this module's __wbg_set_wasm.
+declare module 'semops-wasm/semops_wasm_bg.js' {
   export function __wbg_set_wasm(exports: WebAssembly.Exports): void;
-  export const Validator: typeof import('shacl-wasm').Validator;
-  export const Report: typeof import('shacl-wasm').Report;
-}
-
-// The same arrangement for `holos-wasm`, the SPARQL engine, for the same reason --
-// see services/holos-engine.ts.
-declare module 'holos-wasm/holos_wasm_bg.js' {
-  export function __wbg_set_wasm(exports: WebAssembly.Exports): void;
-  export const Store: typeof import('holos-wasm').Store;
+  export const Store: typeof import('semops-wasm').Store;
+  export const Validator: typeof import('semops-wasm').Validator;
+  export const Report: typeof import('semops-wasm').Report;
 }

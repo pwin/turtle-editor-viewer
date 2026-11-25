@@ -3,12 +3,12 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { RDFParser } from './rdf-parser'
-import { useShaclWasmSource } from './shacl-engine'
+import { useSemopsWasmSource } from './semops-engine'
 import { fillMessageTemplate, validateWithShapes } from './shacl-validator'
 
 // Outside a browser there is no asset URL to fetch; read the binary from the package.
 beforeAll(() => {
-  useShaclWasmSource(() => readFile(join(process.cwd(), 'node_modules/shacl-wasm/shacl_wasm_bg.wasm')))
+  useSemopsWasmSource(() => readFile(join(process.cwd(), 'node_modules/semops-wasm/semops_wasm_bg.wasm')))
 })
 
 const parse = async (text: string) => {

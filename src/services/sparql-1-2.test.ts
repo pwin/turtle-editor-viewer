@@ -42,7 +42,7 @@ async function parse(): Promise<RDFQuad[]> {
 // and throws on import below that, so on Node 20 this entire suite was silently absent
 // rather than passing.
 async function rows(quads: RDFQuad[], query: string): Promise<number> {
-  const holos = await import('holos-wasm-node')
+  const holos = await import('semops-wasm-node')
   const store = new holos.Store()
   try {
     const writer = new Writer({ format: 'N-Quads' })

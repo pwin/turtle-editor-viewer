@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchWasm } from './wasm-asset'
 
-const URL_UNDER_TEST = '/assets/holos_wasm_bg-abc123.wasm'
+const URL_UNDER_TEST = '/assets/semops_wasm_bg-abc123.wasm'
 
 afterEach(() => {
   vi.unstubAllGlobals()

@@ -1,7 +1,7 @@
 import { DataFactory, Writer } from 'n3'
-import type { Validator } from 'shacl-wasm'
+import type { Validator } from 'semops-wasm'
 import type { RDFQuad, ShaclInference, ShaclReport, ShaclResult, ShaclSeverity } from '@/types'
-import { loadShaclEngine } from './shacl-engine'
+import { loadSemopsEngine } from './semops-engine'
 import { renderPathExpression } from './shacl-path'
 import { describeLoadFailure } from './relative-iri'
 
@@ -109,7 +109,7 @@ async function compileShapes(shapes: RDFQuad[]): Promise<CompiledShapes> {
   const cached = compiled.get(text)
   if (cached) return cached
 
-  const { Validator } = await loadShaclEngine()
+  const { Validator } = await loadSemopsEngine()
   const validator = Validator.fromTurtle(text, BASE)
   const entry: CompiledShapes = {
     validator,
